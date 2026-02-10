@@ -18,3 +18,9 @@ Run a specific test:
 ```bash
 bazel test //tests:vector_test
 ```
+
+## Clean
+Remove all bazel cache for the repo (tests, executables, symlinks, etc...)
+```
+bazel clean --expunge
+```
