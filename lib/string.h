@@ -1,7 +1,9 @@
 // string.h
 //
 // Starter file for a string template
+#pragma once
 
+#include <cassert>
 #include <cstddef>    // for size_t
 #include <iostream>   // for ostream
 #include <utility>
@@ -9,8 +11,14 @@
 // Specify default length of string constructed with c string
 const size_t DEFAULT_LENGTH = 16;
 
-#define min(a, b) (a < b ? a : b)
-#define max(a, b) (a > b ? a : b)
+
+inline size_t min(size_t a, size_t b) {
+    return a < b ? a : b;
+}
+
+inline size_t max(size_t a, size_t b) {
+    return a > b ? a : b;
+}
 
 class string {
 public:
@@ -18,10 +26,8 @@ public:
     // REQUIRES: Nothing
     // MODIFIES: *this
     // EFFECTS: Creates an empty string
-    string() {
+    string() : sz(0), cap(0), data(nullptr)  {
         // Defaults
-        sz = 0;
-        cap = 0;
         alloc_(DEFAULT_LENGTH);
     }
 
@@ -38,13 +44,15 @@ public:
     // REQUIRES: cstr is a null terminated C style string
     // MODIFIES: *this
     // EFFECTS: Creates a string with equivalent contents to cstr
-    string(const char *cstr) {
+    string(const char *cstr) : sz(0), cap(0), data(nullptr) {
         // Seemingly unneeded initialization but necessary for alloc_
-        sz = 0;
-        cap = 0;
 
         // Default capacity
         alloc_(DEFAULT_LENGTH);
+
+        if (not cstr) {
+            return;
+        }
 
 
         char *it = data;
@@ -62,6 +70,26 @@ public:
         }
     }
 
+    string(const string& other) : sz(0), cap(0), data(nullptr) {
+        alloc_(max(other.size()+1, DEFAULT_LENGTH)); //Keep size small unlikely to grow
+        for (size_t i = 0; i < other.size(); ++i) {
+            data[i] = other[i];
+        }
+        sz = other.size();
+        data[sz] = '\0';
+    }
+
+
+    string& operator=(const string& other) {
+        if (this == &other) return *this;
+
+        resize(other.size());
+
+        for (size_t i = 0; i < other.size(); ++i) {
+            data[i] = other[i];
+        }
+        return *this;
+    }
     // Size
     // REQUIRES: Nothing
     // MODIFIES: Nothing
@@ -91,11 +119,12 @@ public:
     // MODIFIES: Allows modification of the i'th element
     // EFFECTS: Returns the i'th character of the string
     char &operator[](size_t i) {
-        // If i >= sz return null terminator
-        // In future probably want to throw an error here or something
-        if (i >= sz) {
-            return *(data + sz);
-        }
+        assert (i < sz);
+        return *(data + i);
+    }
+
+    char operator[](size_t i) const {
+        assert (i < sz);
         return *(data + i);
     }
 
@@ -128,8 +157,8 @@ public:
     // REQUIRES: Nothing
     // MODIFIES: *this
     // EFFECTS: Appends c to the string
-    void pushBack(char c) {
-        if (sz + 1 >= cap) alloc_(max(sz * 2, 16));
+    void push_back(char c) {
+        if (sz + 1 >= cap) alloc_(max(sz * 2, DEFAULT_LENGTH)); // Allow growth when parsing
 
         *(data + sz++) = c;
         *(data + sz) = '\0';
@@ -139,7 +168,7 @@ public:
     // REQUIRES: string is not empty
     // MODIFIES: *this
     // EFFECTS: Removes the last charater of the string
-    void popBack() { *(data + --sz) = '\0'; }
+    void pop_back() { *(data + --sz) = '\0'; }
 
     // Equality Operator
     // REQUIRES: Nothing
@@ -192,6 +221,37 @@ public:
     // EFFECTS: Returns whether *this is lexigraphically GREATER or equal to other
     bool operator>=(const string &other) const { return !(*this < other); }
 
+    bool ends_with(const string &other) const {
+
+        size_t len = other.size();
+
+        if (sz < len) return false;
+
+        for (size_t i = 1; i <= len; ++i) {
+            if (data[sz-i] != other[len-i]) return false;
+        }
+        return true;
+    }
+
+    void resize(size_t new_size, char fill_char = '\0') {
+        if (new_size >= cap) {
+            alloc_(max(new_size+1, DEFAULT_LENGTH)); //Keep size small unlikely to grow
+        }
+        for (size_t i = sz; i < new_size; ++i) {
+            data[i] = fill_char;
+        }
+        data[new_size] = '\0';
+        sz = new_size;
+    }
+
+
+    void shrink_to_fit() {
+        if (cap > sz + 1) {
+            alloc_(sz + 1);
+        }
+    }
+
+
 private:
     size_t sz;
     size_t cap;
@@ -199,6 +259,10 @@ private:
 
     // Allocate space when more size is needed
     void alloc_(size_t new_cap) {
+        assert (new_cap >= sz + 1);
+
+        if (new_cap == cap) return;
+
         char *new_data = new char[new_cap];
 
         // Iterate to i == sz to include '\0'
