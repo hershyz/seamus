@@ -1,6 +1,10 @@
 .vscode/
+
 .DS_Store
-bazel-bin/
-bazel-out/
-bazel-testlogs/
-bazel-seamus/
+# Bazel artifacts
+bazel-*
+
+# JetBrains/CLion local metadata
+.clwb/
+.idea/
+cmake-build-*/
