@@ -131,8 +131,8 @@ uint64_t frontierHash(const string& s) {
 }
 
 
-Frontier::Frontier(size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
-    : curr_urls(initial_map_size, initial_loading_factor) { }
+Frontier::Frontier(uint16_t worker_id_init, size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
+    : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
 
 void Frontier::push(const UncrawledItem &u) {
     uint32_t& count = curr_urls[u.url];
@@ -159,4 +159,8 @@ CrawledItem Frontier::front() {
 
 size_t Frontier::size() {
     return pq.size();
+}
+
+void Frontier::persist() {
+    // TODO: persist to memory function
 }

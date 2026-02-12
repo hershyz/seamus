@@ -46,14 +46,16 @@ private:
     unordered_map<string, uint32_t> curr_urls;
     uint16_t worker_id;
 public:
-    Frontier(size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
-        : curr_urls(initial_map_size, initial_loading_factor) { }
+    Frontier(uint16_t worker_id_init, size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
+        : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
 
     void push(const UncrawledItem &u) { }
 
     void push(const string &url, int seed_list_dist) { }
 
     CrawledItem front() { }
+
+    void persist() { }
 
     size_t size() { }
 };
