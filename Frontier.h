@@ -7,17 +7,8 @@
 #include "lib/unordered_map.h"
 #include "lib/priority_queue.h"
 
-static const unordered_map<string, double> tldWeight = {
-    {"gov", 1.2},
-    {"edu", 1.2},
-    {"mil", 1.2},
-    {"com", 1.0},
-    {"org", 1.0},
-    {"net", 1.0},
-    {"info", 0.8},
-    {"biz", 0.8},
-    {"tk", 0.8}
-};
+unordered_map<string,double> makeTldWeight() { }
+static const auto tldWeight = makeTldWeight(); // factory function to avoid having to implement initializer lists lol
 
 bool is_digit(char c) { }
 
@@ -43,14 +34,20 @@ struct CrawledItem {
         times_seen(times_seen_init) { }
 };
 
-bool uncrawledComp(const UncrawledItem& u1, const UncrawledItem& u2) { }
+struct UncrawledComp {
+    bool operator()(const UncrawledItem& u1, const UncrawledItem& u2) const { }
+};
+
+uint64_t frontierHash(const string& s) { }
 
 class Frontier {
 private:
     priority_queue<UncrawledItem, vector<UncrawledItem>, uncrawledComp> pq;
     unordered_map<string, uint32_t> curr_urls;
+    uint16_t worker_id;
 public:
-    Frontier() { }
+    Frontier(size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
+        : curr_urls(initial_map_size, initial_loading_factor) { }
 
     void push(const UncrawledItem &u) { }
 

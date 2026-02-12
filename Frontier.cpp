@@ -103,29 +103,21 @@ double calcPriorityScore(const string& url, int seed_list_dist) {
     return int((factor_1 * factor_2 * factor_3 * factor_4 * factor_5 * factor_6 * factor_7) * 10000.0);
 }
 
-struct UncrawledItem {
-    string url;
-    uint16_t seed_list_dist;
-    uint16_t priority_score; // only to be set once inserted
 
-    UncrawledItem(const string &init_url, uint16_t init_seed_list_dist) : url(init_url), seed_list_dist(init_seed_list_dist),
-        priority_score(calcPriorityScore(init_url, init_seed_list_dist)) { }
-};
+UncrawledItem::UncrawledItem(const string &init_url, uint16_t init_seed_list_dist) : url(init_url), seed_list_dist(init_seed_list_dist),
+    priority_score(calcPriorityScore(init_url, init_seed_list_dist)) { }
 
-struct CrawledItem {
-    string url;
-    uint16_t seed_list_dist;
-    uint32_t times_seen;
 
-    CrawledItem(const string &init_url, uint16_t init_seed_list_dist, uint16_t times_seen_init) : url(init_url), seed_list_dist(init_seed_list_dist), 
-        times_seen(times_seen_init) { }
-};
 
-struct UncrawledComp {
-    bool operator()(const UncrawledItem& u1, const UncrawledItem& u2) const {
-        return u1.priority_score < u2.priority_score;
-    }
-};
+CrawledItem::CrawledItem(const string &init_url, uint16_t init_seed_list_dist, uint16_t times_seen_init) : url(init_url), seed_list_dist(init_seed_list_dist), 
+    times_seen(times_seen_init) { }
+
+
+
+bool UncrawledComp::operator()(const UncrawledItem& u1, const UncrawledItem& u2) const {
+    return u1.priority_score < u2.priority_score;
+}
+
 
 uint64_t frontierHash(const string& s) {
     uint64_t hash = 14695981039346656037ULL; // FNV offset basis
@@ -139,38 +131,32 @@ uint64_t frontierHash(const string& s) {
 }
 
 
-class Frontier {
-private:
-    priority_queue<UncrawledItem, vector<UncrawledItem>, UncrawledComp> pq;
-    unordered_map<string, uint32_t> curr_urls;
-public:
-    Frontier(size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
-        : curr_urls(initial_map_size, initial_loading_factor) { }
+Frontier::Frontier(size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
+    : curr_urls(initial_map_size, initial_loading_factor) { }
 
-    void push(const UncrawledItem &u) {
-        uint32_t& count = curr_urls[u.url];
-        
-        if (count++ == 0) {
-            pq.push(u);
-        }
+void Frontier::push(const UncrawledItem &u) {
+    uint32_t& count = curr_urls[u.url];
+    
+    if (count++ == 0) {
+        pq.push(u);
     }
+}
 
-    void push(const string &url, int seed_list_dist) {
-        uint32_t& count = curr_urls[url];
-        
-        if (count++ == 0) {
-            pq.push(UncrawledItem(url, seed_list_dist));
-        }
+void Frontier::push(const string &url, int seed_list_dist) {
+    uint32_t& count = curr_urls[url];
+    
+    if (count++ == 0) {
+        pq.push(UncrawledItem(url, seed_list_dist));
     }
+}
 
-    CrawledItem front() {
-        assert(!pq.empty());
+CrawledItem Frontier::front() {
+    assert(!pq.empty());
 
-        const UncrawledItem &front = pq.front();
-        return CrawledItem(front.url, front.seed_list_dist, curr_urls[front.url]);
-    }
+    const UncrawledItem &front = pq.front();
+    return CrawledItem(front.url, front.seed_list_dist, curr_urls[front.url]);
+}
 
-    size_t size() {
-        return pq.size();
-    }
-};
+size_t Frontier::size() {
+    return pq.size();
+}
