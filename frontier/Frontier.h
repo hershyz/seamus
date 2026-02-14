@@ -2,10 +2,11 @@
 #include <cassert>
 #include <cstdint>
 #include <iomanip>
-#include "lib/vector.h"
-#include "lib/string.h"
-#include "lib/unordered_map.h"
-#include "lib/priority_queue.h"
+#include "../lib/vector.h"
+#include "../lib/string.h"
+#include "../lib/unordered_map.h"
+#include "../lib/priority_queue.h"
+#include "../lib/utils.h"
 
 unordered_map<string,double> makeTldWeight() { }
 static const auto tldWeight = makeTldWeight(); // factory function to avoid having to implement initializer lists lol
