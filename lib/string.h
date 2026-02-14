@@ -2,6 +2,7 @@
 //
 // Starter file for a string template
 #pragma once
+#define SEAMUS_STRING_H
 
 #include <cassert>
 #include <cstddef>    // for size_t

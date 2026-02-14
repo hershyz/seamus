@@ -29,14 +29,14 @@ cc_library(
     name = "thread_pool",
     hdrs = ["thread_pool.h"],
     visibility = ["//visibility:public"],
-    deps = [":vector"],
+    deps = [":vector", ":deque"],
 )
 
 cc_library(
     name = "unordered_map",
     hdrs = ["unordered_map.h"],
     visibility = ["//visibility:public"],
-    deps = [],
+    deps = [":vector", ":string"],
 )
 
 cc_library(

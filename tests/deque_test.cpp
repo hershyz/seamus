@@ -21,13 +21,13 @@ TEST_CASE(test_push_back_basic) {
     d.push_back(10);
     assert(!d.empty());
     assert(d.size() == 1);
-    assert(*d.front() == 10);
-    assert(*d.back() == 10);
+    assert(d.front() == 10);
+    assert(d.back() == 10);
 
     d.push_back(20);
     assert(d.size() == 2);
-    assert(*d.front() == 10);
-    assert(*d.back() == 20);
+    assert(d.front() == 10);
+    assert(d.back() == 20);
 }
 
 TEST_CASE(test_push_front_basic) {
@@ -35,13 +35,13 @@ TEST_CASE(test_push_front_basic) {
     d.push_front(10);
     assert(!d.empty());
     assert(d.size() == 1);
-    assert(*d.front() == 10);
-    assert(*d.back() == 10);
+    assert(d.front() == 10);
+    assert(d.back() == 10);
 
     d.push_front(20);
     assert(d.size() == 2);
-    assert(*d.front() == 20);
-    assert(*d.back() == 10);
+    assert(d.front() == 20);
+    assert(d.back() == 10);
 }
 
 TEST_CASE(test_pop_back_basic) {
@@ -50,8 +50,8 @@ TEST_CASE(test_pop_back_basic) {
     d.push_back(20);
     d.pop_back();
     assert(d.size() == 1);
-    assert(*d.front() == 10);
-    assert(*d.back() == 10);
+    assert(d.front() == 10);
+    assert(d.back() == 10);
     d.pop_back();
     assert(d.empty());
 }
@@ -62,8 +62,8 @@ TEST_CASE(test_pop_front_basic) {
     d.push_back(20);
     d.pop_front();
     assert(d.size() == 1);
-    assert(*d.front() == 20);
-    assert(*d.back() == 20);
+    assert(d.front() == 20);
+    assert(d.back() == 20);
     d.pop_front();
     assert(d.empty());
 }
@@ -75,16 +75,16 @@ TEST_CASE(test_mixed_push_pop) {
     d.push_back(30);
     d.push_front(40); // deque is now: 40, 20, 10, 30
     assert(d.size() == 4);
-    assert(*d.front() == 40);
-    assert(*d.back() == 30);
+    assert(d.front() == 40);
+    assert(d.back() == 30);
 
     d.pop_front(); // deque is now: 20, 10, 30
     assert(d.size() == 3);
-    assert(*d.front() == 20);
+    assert(d.front() == 20);
 
     d.pop_back(); // deque is now: 20, 10
     assert(d.size() == 2);
-    assert(*d.back() == 10);
+    assert(d.back() == 10);
 }
 
 TEST_CASE(test_indexing_operator) {
@@ -113,19 +113,19 @@ TEST_CASE(test_fill_internal_array) {
         d.push_back(i);
     }
     assert(d.size() == internal_array_size);
-    assert(*d.front() == 0);
-    assert(*d.back() == internal_array_size - 1);
+    assert(d.front() == 0);
+    assert(d.back() == internal_array_size - 1);
 
     // This should trigger a new block allocation
     d.push_back(internal_array_size);
     assert(d.size() == internal_array_size + 1);
-    assert(*d.back() == internal_array_size);
+    assert(d.back() == internal_array_size);
     assert(d[internal_array_size] == internal_array_size);
 
     // This should trigger a new block allocation at the front
     d.push_front(-1);
     assert(d.size() == internal_array_size + 2);
-    assert(*d.front() == -1);
+    assert(d.front() == -1);
     assert(d[0] == -1);
     assert(d[1] == 0);
 }
@@ -157,8 +157,8 @@ TEST_CASE(test_reallocation_and_stress) {
 
         assert(my_d.size() == std_d.size());
         if (!std_d.empty()) {
-            assert(*my_d.front() == std_d.front());
-            assert(*my_d.back() == std_d.back());
+            assert(my_d.front() == std_d.front());
+            assert(my_d.back() == std_d.back());
         }
     }
 
@@ -180,8 +180,8 @@ TEST_CASE(test_reallocation_and_stress) {
         }
         assert(my_d.size() == std_d.size());
         if (!std_d.empty()) {
-            assert(*my_d.front() == std_d.front());
-            assert(*my_d.back() == std_d.back());
+            assert(my_d.front() == std_d.front());
+            assert(my_d.back() == std_d.back());
         }
     }
 

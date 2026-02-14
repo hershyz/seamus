@@ -1,10 +1,10 @@
 // Simple thread pool -- each class instance represents a pool of workers for the same func(args)
 
 #include "vector.h"
+#include "deque.h"
 #include <condition_variable>
 #include <cstdlib>
 #include <mutex>
-#include <queue>
 #include <thread>
 
 
@@ -51,7 +51,7 @@ public:
     void enqueue_task(TaskArgs task) {
         {
             std::unique_lock<std::mutex> lock(m);
-            tasks.push(task);
+            tasks.push_back(task);
         }
         cv.notify_one();
     }
@@ -74,7 +74,7 @@ private:
     std::condition_variable cv;     // CV for threads
     size_t n_threads;               // Number of threads in the pool
     std::thread* threads;           // Underlying region of threads in the pool 
-    std::queue<TaskArgs> tasks;     // Task queue
+    deque<TaskArgs> tasks;          // Task queue
     bool exit;                      // Termination signal for worker threads
 
 
@@ -91,7 +91,7 @@ private:
                 if (exit && tasks.empty()) return;
 
                 task = std::move(tasks.front());
-                tasks.pop();
+                tasks.pop_front();
             }
 
             // Execute task outside lock

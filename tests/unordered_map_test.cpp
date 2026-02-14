@@ -1,18 +1,12 @@
-#include "../unordered_map.h"
+#include "../lib/unordered_map.h"
 #include <iostream>
-#include <string>
 #include <cassert>
-
-// Simple hash and equality functions for int keys
-uint64_t int_hash(int key) { return static_cast<uint64_t>(key); }
-
-bool int_eq(int a, int b) { return a == b; }
 
 int main() {
     std::cout << "=== Testing unordered_map<int,int> ===\n";
 
     // Create map with initial capacity 8
-    unordered_map<int,int> map(8, int_hash, int_eq);
+    unordered_map<int,int> map(8);
 
     // Test insert
     map.insert(1, 100);

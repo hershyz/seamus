@@ -99,10 +99,10 @@ public:
     }
 
 
-    T* front() { return (alloc_region + deque_left); }
+    T& front() { return *(alloc_region + deque_left); }
 
 
-    T* back() { return (alloc_region + deque_right); }
+    T& back() { return *(alloc_region + deque_right); }
 
 
     size_t size() { return deque_size; }

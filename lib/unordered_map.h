@@ -61,6 +61,7 @@ struct DefaultHash {
     }
 };
 
+#ifdef SEAMUS_STRING_H
 template<>
 struct DefaultHash<string> {
     uint64_t operator()(const string& s) const {
@@ -72,6 +73,7 @@ struct DefaultHash<string> {
         return h;
     }
 };
+#endif
 
 template<typename T>
 struct DefaultEq {
