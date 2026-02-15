@@ -14,10 +14,12 @@ struct postings {
 
 class IndexChunk {
 private:
-    unordered_map<string, postings> index_;
-    unordered_map<uint32_t, string> urls_;
+    unordered_map<string, postings> index;
+    vector<string> urls;
     uint32_t curr_doc_;
     uint32_t curr_loc_;
+
+    vector<string> sort_entries();
 public:
     IndexChunk() : curr_doc_ (0), curr_loc_ (0) {}
 
