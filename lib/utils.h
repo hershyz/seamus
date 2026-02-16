@@ -69,3 +69,9 @@ bool file_exists(const string &fname) {
     struct stat buff;
     return stat(fname.cstr(), &buff) == 0;
 }
+
+// Returns null terminator if index is past string bounds
+// Oterhwise returns char at given index in string
+inline char charAt(const string &str, size_t i) {
+    return i >= str.size() ? '\0' : str[i];
+}

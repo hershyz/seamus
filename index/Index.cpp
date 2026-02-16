@@ -1,4 +1,6 @@
 #include "Index.h"
+
+#include "lib/algorithm.h"
 #include "lib/utils.h"
 
 void init_index() {
@@ -28,7 +30,7 @@ void IndexChunk::persist() {
     for (uint32_t i = 0; i < urls.size(); i++) {
         fwrite(&i, sizeof(i), 1, fd);
         fwrite(" ", sizeof(char), 1, fd);
-        fwrite(urls[i], sizeof(char), urls[i].size(), fd);
+        fwrite(&urls[i], sizeof(char), urls[i].size(), fd);
         fwrite("\n", sizeof(char), 1, fd);
     }
 
@@ -36,12 +38,16 @@ void IndexChunk::persist() {
 
     vector<string> alphabetized_entries = sort_entries();
 
+    // TODO: Left off here
+
     fclose(fd);
 }
 
 vector<string> IndexChunk::sort_entries() {
     vector<string> res(index.size());
 
-    // TODO: Radix sort this
-    // https://algs4.cs.princeton.edu/lectures/keynote/51StringSorts.pdf
+    // TODO: Have to copy all the keys into res
+
+    radix_sort(res);
+    return res;
 }
