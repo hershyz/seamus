@@ -38,8 +38,41 @@ void IndexChunk::persist() {
 
     vector<string> alphabetized_entries = sort_entries();
 
-    // TODO: Left off here
+    // Calculate dictionary lookup table values (bytes from start of dict to first word of each letter)
+    // And posting list sizes/locations
+    uint64_t posting_list_locations[alphabetized_entries.size()];
+    uint64_t dict_offsets[26];
+    dict_offsets[0] = 0;
+    char curr_char = 'a';
+    uint64_t curr_offset = 0;
+    for (int i = 0; i < alphabetized_entries.size(); i++) {
+        // First word starting with this letter -- add its offset to the dict lookup table
+        if (alphabetized_entries[i][0] > curr_char) {
+            curr_char = alphabetized_entries[i][0];
+            dict_offsets[curr_char - 'a'] = curr_offset;
+        }
 
+        // One byte per char, 6 bytes for posting list offset, 1 byte each for space and new line
+        curr_offset += alphabetized_entries[i].size() + 6 + 2; 
+
+        // TODO: Add posting list size to posting list locations
+    }
+
+    // Write dictionary lookup table
+    for (int i = 0; i < 26; i++) {
+        char c = char(i + 'a');
+        fwrite(&c, sizeof(char), 1, fd);
+        fwrite(" ", sizeof(char), 1, fd);
+        fwrite(dict_offsets + i, sizeof(uint64_t), 1, fd);
+        fwrite("\n", sizeof(char), 1, fd);
+    }
+
+    fwrite("\n", sizeof(char), 1, fd);
+
+    // Write the dictionary itself
+    for (string s : alphabetized_entries) {
+
+    }
     fclose(fd);
 }
 
