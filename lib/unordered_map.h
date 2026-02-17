@@ -102,7 +102,7 @@ private:
     double loading_factor;
 
 
-    // friend class Iterator; WILL NEED TO EDIT THIS TO WORK WITH THIS SPECIFIC MAP!
+    friend class Iterator; // WILL NEED TO EDIT THIS TO WORK WITH THIS SPECIFIC MAP!
     friend class HashBlob; // WILL NEED TO EDIT THIS TO WORK WITH THIS SPECIFIC MAP!
 
 public:
@@ -185,6 +185,14 @@ public:
         return map_capacity;
     }
 
+    Iterator begin() {
+        return Iterator(this, 0);
+    }
+
+    Iterator end() {
+        return Iterator(this, map_capacity);
+    }
+
     Value& operator[](const Key& k) {
         rehash(loading_factor);
         
@@ -262,4 +270,45 @@ public:
         map_capacity = new_cap;
         vec_map = new_slots;
     } // new size must be a power of 2!!
+
+    class Iterator {
+    private:
+        unordered_map* map;
+        uint64_t index;
+
+        void next_valid() {
+            while(index < map->map_capacity) {
+                if(map->vec_map[index].state == State::FILLED) {
+                    return;
+                }
+                index++;
+            }
+        }
+    public:
+        Iterator(unordered_map* m, uint64_t i=0)
+            : map(m), index(i)
+        {
+            skip_to_valid();
+        }
+
+        Iterator& operator++() {
+            ++index;
+            skip_to_valid();
+            return *this;
+        }
+
+        Key operator*() {
+            auto& slot = map->vec_map[index];
+            return slot.key;
+        }
+
+        Value operator?() {
+            auto& slot = map->vec_map[index];
+            return slot.value;
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return index != other.index;
+        }
+    };
 };
