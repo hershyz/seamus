@@ -92,7 +92,7 @@ template<
 private:
 
     vector<Slot<Key, Value>> vec_map;
-    uint64_t map_capacity;
+    size_t map_capacity;
     
 
     Hash hash;
@@ -116,7 +116,7 @@ public:
         // in the hash, add it with the initial value.
 
         // YOUR CODE HERE
-        uint64_t index = hash(k) & (map_capacity - 1);
+        size_t index = hash(k) & (map_capacity - 1);
         
         uint64_t start = index;
         do {
@@ -137,9 +137,9 @@ public:
 
     const Slot<Key, Value>* find(const Key& k) const {
 
-        uint64_t index = hash(k) & (map_capacity - 1);
+        size_t index = hash(k) & (map_capacity - 1);
 
-        uint64_t start = index;
+        size_t start = index;
         do {
             const Slot<Key, Value>& curr_val = vec_map[index];
             if(curr_val.state == State::EMPTY) {
@@ -155,9 +155,9 @@ public:
     }
 
     void insert(const Key& k, const Value& v) {
-        uint64_t index = hash(k) & (map_capacity - 1);
+        size_t index = hash(k) & (map_capacity - 1);
 
-        uint64_t start = index;
+        size_t start = index;
         do {
             Slot<Key, Value>& curr_val = vec_map[index];
             if(vec_map[index].state == State::FILLED) {
@@ -196,8 +196,8 @@ public:
     Value& operator[](const Key& k) {
         rehash(loading_factor);
         
-        uint64_t index = hash(k) & (map_capacity - 1);
-        uint64_t start = index;
+        size_t index = hash(k) & (map_capacity - 1);
+        size_t start = index;
         do {
             Slot<Key, Value>& curr_val = vec_map[index];
             if(curr_val.state == State::EMPTY) {
@@ -229,14 +229,14 @@ public:
         if (is_overloaded) {
             // grow table by x2
             vector<Slot<Key, Value>> new_slots;
-            uint64_t new_cap = (map_capacity == 0 ? 256 : map_capacity * 2);
+            size_t new_cap = (map_capacity == 0 ? 256 : map_capacity * 2);
 
             new_slots.resize(new_cap);
             collision_counter = 0;
             
             for (Slot<Key, Value>& i : vec_map) {
                 if(i.state == State::FILLED) {
-                    uint64_t idx = hash(i.key) & (new_cap - 1);
+                    size_t idx = hash(i.key) & (new_cap - 1);
                     while(new_slots[idx].state == State::FILLED) {
                         idx = (idx + 1) & (new_cap - 1); // linear probing
                         collision_counter++;
@@ -252,14 +252,14 @@ public:
     void optimize_size( uint64_t new_size ) {
 
         vector<Slot<Key, Value>> new_slots;
-        uint64_t new_cap = new_size;
+        size_t new_cap = new_size;
 
         new_slots.resize(new_cap);
         collision_counter = 0;
         
         for (Slot<Key, Value>& i : vec_map) {
             if(i.state == State::FILLED) {
-                uint64_t idx = hash(i.key) & (new_cap - 1);
+                size_t idx = hash(i.key) & (new_cap - 1);
                 while(new_slots[idx].state == State::FILLED) {
                     idx = (idx + 1) & (new_cap - 1); // linear probing
                     collision_counter++;
@@ -274,7 +274,7 @@ public:
     class Iterator {
     private:
         unordered_map* map;
-        uint64_t index;
+        size_t index;
 
         void next_valid() {
             while(index < map->map_capacity) {
@@ -285,7 +285,7 @@ public:
             }
         }
     public:
-        Iterator(unordered_map* m, uint64_t i=0)
+        Iterator(unordered_map* m, size_t i=0)
             : map(m), index(i)
         {
             skip_to_valid();
