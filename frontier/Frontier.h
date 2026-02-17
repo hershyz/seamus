@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdint>
 #include <iomanip>
+#include <stdio.h>
 #include "../lib/vector.h"
 #include "../lib/string.h"
 #include "../lib/unordered_map.h"
@@ -38,8 +39,6 @@ struct CrawledItem {
 struct UncrawledComp {
     bool operator()(const UncrawledItem& u1, const UncrawledItem& u2) const { }
 };
-
-uint64_t frontierHash(const string& s) { }
 
 class Frontier {
 private:

@@ -119,6 +119,14 @@ public:
     // checks whether heap is empty
     bool empty() const { return heap.empty(); }
 
+    Iterator begin() {
+        return Iterator(this, 0);
+    }
+
+    Iterator end() {
+        return Iterator(this, heap.size());
+    }
+
 private:
     // restores heap order upward from the last element
     void heap_sort_up() {
@@ -162,4 +170,29 @@ private:
 
     Container heap;                        // underlying heap storage (defaults to max heap similarly to stl)
     Compare comp;                          // comparator object which is customizable
+
+    friend class Iterator;
+
+    class Iterator {
+    private:
+        priority_queue* pq;
+        size_t index;
+
+    public:
+        Iterator(unordered_map* p, size_t i)
+            : pq(p), index(i) { }
+
+        Iterator& operator++() {
+            ++index;
+            return *this;
+        }
+
+        T operator*() {
+            return pq->heap[index];
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return index != other.index;
+        }
+    };
 };

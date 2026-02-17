@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdint>
 #include <iomanip>
+#include <stdio.h>
 #include "../lib/vector.h"
 #include "../lib/string.h"
 #include "../lib/unordered_map.h"
@@ -120,18 +121,6 @@ bool UncrawledComp::operator()(const UncrawledItem& u1, const UncrawledItem& u2)
 }
 
 
-uint64_t frontierHash(const string& s) {
-    uint64_t hash = 14695981039346656037ULL; // FNV offset basis
-
-    for (size_t i = 0; i < s.size(); ++i) {
-        hash ^= (unsigned char)s[i];
-        hash *= 1099511628211ULL; // FNV prime
-    }
-
-    return hash;
-}
-
-
 Frontier::Frontier(uint16_t worker_id_init, size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
     : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
 
@@ -164,4 +153,15 @@ size_t Frontier::size() {
 
 void Frontier::persist() {
     // TODO: persist to memory function
+
+    string filename = "frontier_" + str(worker_id);
+    FILE* file = fopen(filename, "wb");  // w = overwrite, b = binary
+
+    auto it = pq.begin();
+
+    while(it != pq.end()) {
+        // write the UncrawledItem details to the doc
+        // <url>\n<priority score (16 bits)> <distance from seed list (16 bits)> <times seen (32 bits)> \n
+        it++;
+    }
 }

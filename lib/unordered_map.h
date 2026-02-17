@@ -56,16 +56,16 @@ template< typename Key, typename Value > class Slot {
 // Default Hash functions and equality functors!
 template<typename T>
 struct DefaultHash {
-    uint64_t operator()(const T& x) const {
-        return (uint64_t)x; // fallback for integers
+    size_t operator()(const T& x) const {
+        return (size_t)x; 
     }
 };
 
 #ifdef SEAMUS_STRING_H
 template<>
 struct DefaultHash<string> {
-    uint64_t operator()(const string& s) const {
-        uint64_t h = 14695981039346656037ULL;
+    size_t operator()(const string& s) const {
+        size_t h = 14695981039346656037ULL;
         for (size_t i = 0; i < s.size(); ++i) {
             h ^= (unsigned char)s[i];
             h *= 1099511628211ULL;
@@ -97,7 +97,7 @@ private:
 
     Hash hash;
     Eq compareEqual;
-    uint64_t uniqueKeys;
+    size_t uniqueKeys;
     uint64_t collision_counter;
     double loading_factor;
 
@@ -118,7 +118,7 @@ public:
         // YOUR CODE HERE
         size_t index = hash(k) & (map_capacity - 1);
         
-        uint64_t start = index;
+        size_t start = index;
         do {
             Slot<Key, Value>& curr_val = vec_map[index];
             if(curr_val.state == State::EMPTY) {
@@ -177,11 +177,11 @@ public:
         throw std::runtime_error("table full");
     }
 
-    uint64_t size() {
+    size_t size() {
         return uniqueKeys;
     }
 
-    uint64_t capacity() {
+    size_t capacity() {
         return map_capacity;
     }
 
@@ -249,7 +249,7 @@ public:
         }
     }
     // SET A CUSTOM SIZE FOR THE MAP TO OPTIMIZE!
-    void optimize_size( uint64_t new_size ) {
+    void optimize_size( size_t new_size ) {
 
         vector<Slot<Key, Value>> new_slots;
         size_t new_cap = new_size;
@@ -285,7 +285,7 @@ public:
             }
         }
     public:
-        Iterator(unordered_map* m, size_t i=0)
+        Iterator(unordered_map* m, size_t i)
             : map(m), index(i)
         {
             skip_to_valid();
@@ -302,7 +302,7 @@ public:
             return slot.key;
         }
 
-        Value operator?() {
+        Value operator&() {
             auto& slot = map->vec_map[index];
             return slot.value;
         }
