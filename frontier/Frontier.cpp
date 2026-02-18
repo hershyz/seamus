@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <stdio.h>
+#include <cstring>
 #include "../lib/vector.h"
 #include "../lib/string.h"
 #include "../lib/unordered_map.h"
@@ -152,16 +153,33 @@ size_t Frontier::size() {
 }
 
 void Frontier::persist() {
-    // TODO: persist to memory function
+        // Create a file (if it already exists, fail -- don't want to overwrite)
+    string path = string::join("frontier_", string(worker_id), ".txt");
+    FILE* fd = fopen(path.data(), "wx");
 
-    string filename = "frontier_" + str(worker_id);
-    FILE* file = fopen(filename, "wb");  // w = overwrite, b = binary
+    if (fd == nullptr) perror("Error opening frontier file for writing.");
 
-    auto it = pq.begin();
-
-    while(it != pq.end()) {
-        // write the UncrawledItem details to the doc
-        // <url>\n<priority score (16 bits)> <distance from seed list (16 bits)> <times seen (32 bits)> \n
-        it++;
+    // <url_len (32 bits)><url (variable)><priority score (16 bits)><distance from seed list (16 bits)><times seen (32 bits)>
+    uint64_t total_bytes = 0;
+    for (auto it = pq.begin(); it != pq.end(); ++it) {
+        total_bytes += (*it).url.size() + 10;
     }
+
+    // Write the size
+    fwrite(&total_bytes, sizeof(total_bytes), 1, fd);
+    fwrite("\n", sizeof(char), 1, fd);
+
+    // Write the file
+    for (auto it = pq.begin(); it != pq.end(); ++it) {
+        string url = (*it).url;
+        uint16_t seed_dist = (*it).seed_list_dist;
+        uint32_t times_seen = curr_urls[url];
+        uint32_t sz = url.size();
+        fwrite(&sz, sizeof(uint32_t), 1, fd);
+        fwrite(url.data(), sizeof(char), url.size(), fd);
+        fwrite(&seed_dist, sizeof(uint16_t), 1, fd);
+        fwrite(&times_seen, sizeof(uint32_t), 1, fd);
+    }
+
+    fclose(fd);
 }

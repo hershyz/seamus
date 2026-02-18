@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <stdio.h>
+#include <cstring>
 #include "../lib/vector.h"
 #include "../lib/string.h"
 #include "../lib/unordered_map.h"
