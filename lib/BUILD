@@ -52,12 +52,6 @@ cc_library(
     deps = [":string"],
 )
 
-# cc_library(
-#     name = "string",
-#     hdrs = ["string.h"],
-#     visibility = ["//visibility:public"],
-# )
-
 cc_library(
     name = "string",
     hdrs = ["string.h"],
