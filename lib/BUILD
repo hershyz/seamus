@@ -57,3 +57,10 @@ cc_library(
     hdrs = ["string.h"],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "string",
+    hdrs = ["string.h"],
+    visibility = ["//visibility:public"],
+    deps = [],
+)
