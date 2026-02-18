@@ -16,6 +16,10 @@ cc_library(
     name = "algorithm",
     hdrs = ["algorithm.h"],
     visibility = ["//visibility:public"],
+    deps = [
+        ":utils",
+        ":vector"
+    ]
 )
 
 cc_library(
