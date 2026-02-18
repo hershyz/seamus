@@ -154,6 +154,25 @@ public:
         throw std::runtime_error("table full");
     }
 
+    Slot<Key, Value>* find(const Key& k) {
+
+        size_t index = hash(k) & (map_capacity - 1);
+
+        size_t start = index;
+        do {
+            const Slot<Key, Value>& curr_val = vec_map[index];
+            if(curr_val.state == State::EMPTY) {
+                return nullptr; // replace with map.end()
+            } else if(curr_val.state == State::FILLED) {
+                if(compareEqual(curr_val.key, k)) {
+                    return &curr_val;
+                }
+            }
+            index = (index + 1) & (map_capacity - 1); // linear probing
+        } while(index != start);
+        throw std::runtime_error("table full");
+    }
+
     void insert(const Key& k, const Value& v) {
         size_t index = hash(k) & (map_capacity - 1);
 
