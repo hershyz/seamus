@@ -39,6 +39,8 @@ public:
     bool addUrl(const string& url, const vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t eot, const uint16_t eod, const uint32_t num_encountered);
     bool updateUrl(const string& url, const vector<string>& anchor_texts, const uint32_t num_encountered);
 
+    uint32_t findAnchorId(const string& anchor_text);
+
     vector<UserAnchorData> getUrlAnchorInfo(const string& url) {
         const UrlData* it = findUrlData(url);
         if (it == nullptr) return {};
