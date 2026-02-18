@@ -119,6 +119,37 @@ public:
     // checks whether heap is empty
     bool empty() const { return heap.empty(); }
 
+    class Iterator {
+    private:
+        const priority_queue* pq;
+        size_t index;
+
+    public:
+        Iterator(priority_queue* p, size_t i)
+            : pq(p), index(i) { }
+
+        Iterator& operator++() {
+            ++index;
+            return *this;
+        }
+
+        T operator*() {
+            return pq->heap[index];
+        }
+
+        const T& operator*() const {
+            return pq->heap[index];
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return index != other.index;
+        }
+
+        bool operator==(const Iterator& other) const {
+            return index == other.index;
+        }
+    };
+
     Iterator begin() {
         return Iterator(this, 0);
     }
@@ -126,6 +157,7 @@ public:
     Iterator end() {
         return Iterator(this, heap.size());
     }
+
 
 private:
     // restores heap order upward from the last element
@@ -172,27 +204,4 @@ private:
     Compare comp;                          // comparator object which is customizable
 
     friend class Iterator;
-
-    class Iterator {
-    private:
-        priority_queue* pq;
-        size_t index;
-
-    public:
-        Iterator(unordered_map* p, size_t i)
-            : pq(p), index(i) { }
-
-        Iterator& operator++() {
-            ++index;
-            return *this;
-        }
-
-        T operator*() {
-            return pq->heap[index];
-        }
-
-        bool operator!=(const Iterator& other) const {
-            return index != other.index;
-        }
-    };
 };

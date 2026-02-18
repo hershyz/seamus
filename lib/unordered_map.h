@@ -204,14 +204,6 @@ public:
         return map_capacity;
     }
 
-    Iterator begin() {
-        return Iterator(this, 0);
-    }
-
-    Iterator end() {
-        return Iterator(this, map_capacity);
-    }
-
     Value& operator[](const Key& k) {
         rehash(loading_factor);
         
@@ -292,7 +284,7 @@ public:
 
     class Iterator {
     private:
-        unordered_map* map;
+        const unordered_map* map;
         size_t index;
 
         void next_valid() {
@@ -307,16 +299,21 @@ public:
         Iterator(unordered_map* m, size_t i)
             : map(m), index(i)
         {
-            skip_to_valid();
+            next_valid();
         }
 
         Iterator& operator++() {
             ++index;
-            skip_to_valid();
+            next_valid();
             return *this;
         }
 
         Key operator*() {
+            auto& slot = map->vec_map[index];
+            return slot.key;
+        }
+
+        const Key& operator*() const {
             auto& slot = map->vec_map[index];
             return slot.key;
         }
@@ -326,8 +323,25 @@ public:
             return slot.value;
         }
 
+        const Value& operator&() const {
+            auto& slot = map->vec_map[index];
+            return slot.value;
+        }
+
         bool operator!=(const Iterator& other) const {
             return index != other.index;
         }
+
+        bool operator==(const Iterator& other) const {
+            return index == other.index;
+        }
     };
+
+    Iterator begin() {
+        return Iterator(this, 0);
+    }
+
+    Iterator end() {
+        return Iterator(this, map_capacity);
+    }
 };
