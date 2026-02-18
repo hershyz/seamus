@@ -175,7 +175,7 @@ void Frontier::persist() {
 
     if (fd == nullptr) perror("Error opening frontier file for writing.");
 
-    // <url_len (32 bits)><url (variable)><distance from seed list (16 bits)><times seen (32 bits)>
+    // <url_len (32 bits)><url (variable)><priority score (16 bits)><distance from seed list (16 bits)><times seen (32 bits)>
     uint64_t total_bytes = 0;
     for (auto it = pq.begin(); it != pq.end(); ++it) {
         total_bytes += (*it).url.size() + 10;
