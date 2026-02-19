@@ -81,5 +81,5 @@ cc_library(
     name = "rpc_listener",
     hdrs = ["rpc_listener.h"],
     visibility = ["//visibility:public"],
-    deps = [],
+    deps = [":thread_pool"],
 )

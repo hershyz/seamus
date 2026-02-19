@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <functional>
+#include "thread_pool.h"
 
 
 class RPCListener {
