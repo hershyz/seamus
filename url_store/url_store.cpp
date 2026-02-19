@@ -1,4 +1,5 @@
 #include "url_store.h"
+#include "lib/string.h"
 
 
 const UrlData* UrlStore::findUrlData(const string& url) const {
@@ -6,10 +7,71 @@ const UrlData* UrlStore::findUrlData(const string& url) const {
     return slot ? &slot->value : nullptr;
 }
 
+
 UrlData* UrlStore::findUrlData(const string& url) {
     Slot<string, UrlData>* slot = url_data.find(url);
     return slot ? &slot->value : nullptr;
 }
+
+
+uint32_t UrlStore::findAnchorId(const string& anchor_text) {
+    for (size_t i = 0; i < anchor_to_id.size(); i++) {
+        if (anchor_to_id[i] == anchor_text) {
+            return i;
+        }
+    }
+    anchor_to_id.push_back(anchor_text);
+    return anchor_to_id.size() - 1;
+}
+
+
+bool UrlStore::addUrl(const string& url, const vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t eot, const uint16_t eod, const uint32_t num_encountered) {
+    // if url already exists, return false
+    if (url_data.find(url)) return false;
+
+    UrlData new_url_data;
+    new_url_data.num_encountered = num_encountered;
+    new_url_data.seed_distance = seed_distance;
+    new_url_data.eot = eot;
+    new_url_data.eod = eod;
+
+    for (const string& anchor_text : anchor_texts) {
+        uint32_t anchor_id = findAnchorId(anchor_text);
+        // TODO: revisit if anchor_texts content can be duplicates
+        new_url_data.anchor_freqs.push_back({anchor_id, 1});
+    }
+
+    url_data[url] = new_url_data;
+    return true;
+}
+
+
+bool UrlStore::updateUrl(const string& url, const vector<string>& anchor_texts, const uint32_t num_encountered) {
+    UrlData* url_data_ptr = findUrlData(url);
+    if (url_data_ptr == nullptr) return false;
+
+    url_data_ptr->num_encountered += num_encountered;
+
+    for (const string& anchor_text : anchor_texts) {
+        uint32_t anchor_id = findAnchorId(anchor_text);
+
+        bool found_anchor_freq = false;
+        for (AnchorData& anchor_freq : url_data_ptr->anchor_freqs) {
+            if (anchor_freq.anchor_id == anchor_id) {
+                anchor_freq.freq++;
+                found_anchor_freq = true;
+                break;
+            }
+        }
+
+        if (!found_anchor_freq) {
+            url_data_ptr->anchor_freqs.push_back({anchor_id, 1});
+        }
+    }
+
+    return true;
+}
+
 
 /*
 Persisted at same time as index chunks
@@ -36,7 +98,9 @@ void UrlStore::persist() {
         fwrite("\n", sizeof(char), 1, fd);
     }
     
-    for (const auto& [url, data] : url_data) {
+    for (const auto& slot : url_data) {
+        const string& url = slot.key;
+        const UrlData& data = slot.value;
         fprintf(fd, "%lu", url.size());
         fwrite(&url, sizeof(char), url.size(), fd);
         fprintf(fd, "%u %u %u %u %u\n", data.num_encountered, data.seed_distance, data.eot, data.eod, data.anchor_freqs.size());
@@ -46,6 +110,7 @@ void UrlStore::persist() {
         }
     }
 }
+
 
 void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
     // given a urlstore object and worker number, read from corresponding file and update urlstore object accordingly
@@ -59,7 +124,7 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
     for (uint32_t i = 0; i < num_anchor_texts; i++) {
         uint32_t anchor_text_len;
         fread(&anchor_text_len, sizeof(uint32_t), 1, fd);
-        string anchor_text(anchor_text_len, '\0');
+        string anchor_text(anchor_text_len, '\0'); // TODO: revisit after friday
         fread(&anchor_text[0], sizeof(char), anchor_text_len, fd);
         url_store.anchor_to_id.push_back(anchor_text);
         fread(&dummy, sizeof(char), 1, fd); // consume newline
@@ -67,7 +132,7 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
 
     uint32_t url_len;
     while (fread(&url_len, sizeof(uint32_t), 1, fd)) {
-        string url(url_len, '\0');
+        string url(url_len, '\0'); // TODO: revisit after friday
         fread(&url[0], sizeof(char), url_len, fd);
         url_store.url_data[url] = UrlData();
 
