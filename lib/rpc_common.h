@@ -10,7 +10,7 @@
 
 // Send a buffer to an end host over TCP
 // This operation spins up a short-lived socket but is completely stateless beyond the success of the creation of the socket
-bool send_buffer(const string& host, uint16_t port, const void* buf, size_t len) {
+inline bool send_buffer(const string& host, uint16_t port, const void* buf, size_t len) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) return false;
 
@@ -18,7 +18,7 @@ bool send_buffer(const string& host, uint16_t port, const void* buf, size_t len)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 
-    if (inet_pton(AF_INET, host.cstr(), &addr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, host.data(), &addr.sin_addr) <= 0) {
         close(sockfd);
         return false;
     }
