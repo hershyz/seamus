@@ -125,8 +125,8 @@ bool UncrawledComp::operator()(const UncrawledItem& u1, const UncrawledItem& u2)
 }
 
 
-Frontier::Frontier(uint16_t worker_id_init, size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
-    : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
+// Frontier::Frontier(uint16_t worker_id_init, size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
+//     : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
 
 void Frontier::push(const UncrawledItem &u) {
     uint32_t& count = curr_urls[u.url];
