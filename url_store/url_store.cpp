@@ -4,7 +4,7 @@
 
 UrlStore::UrlStore() {
     rpc_listener = new RPCListener(PORT, NUM_THREADS);
-    // TODO(hershey): spawn listener loop in a detached thread here   
+    // TODO(hershey): spawn listener loop in a detached thread here
 }
 
 UrlStore::~UrlStore() {
@@ -120,6 +120,7 @@ void UrlStore::persist() {
         const UrlData& data = slot.value;
         fprintf(fd, "%lu", url.size());
         fwrite(&url, sizeof(char), url.size(), fd);
+        fwrite("\n", sizeof(char), 1, fd);
         fprintf(fd, "%u %u %u %u %u\n", data.num_encountered, data.seed_distance, data.eot, data.eod, data.anchor_freqs.size());
 
         for (const auto& anchor_freq : data.anchor_freqs) {
@@ -156,6 +157,7 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
     while (fread(&url_len, sizeof(uint32_t), 1, fd)) {
         fread(&url_buff, sizeof(char), url_len, fd);
         string url(url_buff, url_len);
+        fread(&dummy, sizeof(char), 1, fd); // consume newline
         url_store.url_data[url] = UrlData();
 
         uint32_t num_encountered, num_anchor_freqs;
@@ -170,10 +172,14 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
         url_store.url_data[url].eot = eot;
         url_store.url_data[url].eod = eod;
 
+        fread(&dummy, sizeof(char), 1, fd); // consume newline
+
         for (uint32_t i = 0; i < num_anchor_freqs; i++) {
             uint32_t anchor_id, freq;
             fread(&anchor_id, sizeof(uint32_t), 1, fd);
             fread(&freq, sizeof(uint32_t), 1, fd);
+            fread(&dummy, sizeof(char), 1, fd); // consume newline
+
             url_store.url_data[url].anchor_freqs.push_back({anchor_id, freq});
         }
     }
