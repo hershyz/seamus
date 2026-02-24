@@ -15,12 +15,13 @@ class string_view {
 private:
     const char* data_;
     size_t len;
-    [[nodiscard]] const char* data() const noexcept {
-        return data_;
-    }
 
 public:
     string_view(const char* source, size_t len) : data_{source}, len{len} {}
+
+    [[nodiscard]] const char* data() const noexcept {
+        return data_;
+    }
 
     [[nodiscard]] string to_string() const;
 
@@ -360,4 +361,13 @@ inline bool operator==(const string& lhs, const string_view& rhs) {
 
 inline bool operator==(const string_view& lhs, const string& rhs) {
     return rhs == lhs;
+}
+
+
+char* write_to(char* buffer, auto str) {
+    assert(buffer != nullptr);
+    assert(str != nullptr);
+    memcpy(buffer, str.data(), str.size());
+    buffer[str.size()] = '\0';
+    return buffer+str.size()+1;
 }
