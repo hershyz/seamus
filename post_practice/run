@@ -1,0 +1,2 @@
+#!/bin/bash
+g++ -std=c++17 InvertedIndex.cpp InvertedTest.cpp -o InvertedTest && ./InvertedTest
