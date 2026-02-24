@@ -8,6 +8,7 @@
 
 #pragma once
 #include <cassert>
+#include <new>
 
 template <typename T>
 class deque {
@@ -18,7 +19,7 @@ public:
         assert(init_alloc_size % 2 != 0);
 
         // Initial allocation
-        alloc_region = new T[init_alloc_size];
+        alloc_region = static_cast<T*>(::operator new(init_alloc_size * sizeof(T)));
         deque_capacity = init_alloc_size;
         deque_size = 0;
 
@@ -31,7 +32,15 @@ public:
 
     // Destructor
     ~deque() {
-        if (deque_capacity > 0) delete[] alloc_region;
+        if (deque_capacity > 0) {
+            // Destroy valid elements
+            if (!empty()) {
+                for (size_t ptr = deque_left; ptr <= deque_right; ++ptr) {
+                    (alloc_region + ptr)->~T();
+                }
+            }
+            ::operator delete(alloc_region);
+        }
     }
 
 
@@ -39,7 +48,8 @@ public:
     void push_back(const T& val) {
         // If currently empty, just set the val
         if (empty()) {
-            *(alloc_region + deque_left) = val;
+            // Construct using placement new
+            new (alloc_region + deque_left) T(val);
             deque_size++;
             return;
         }
@@ -50,15 +60,15 @@ public:
         // Move right pointer to new valid region and fill
         deque_right++;
         deque_size++;
-        *(alloc_region + deque_right) = val;
+        new (alloc_region + deque_right) T(val);
     }
 
 
     // Push front (fills an element before the left pointer)
     void push_front(const T& val) {
-        // If currently empty, just set the val
+        // If currently empty, just construct the val
         if (empty()) {
-            *(alloc_region + deque_left) = val;
+            new (alloc_region + deque_left) T(val);
             deque_size++;
             return;
         }
@@ -69,12 +79,46 @@ public:
         // Move left pointer to new valid region and fill
         deque_left--;
         deque_size++;
-        *(alloc_region + deque_left) = val;
+        new (alloc_region + deque_left) T(val);
+    }
+
+    // Push back for move-only or temporary objects
+    void push_back(T&& val) {
+        if (empty()) {
+            // Construct using the MOVE constructor
+            new (alloc_region + deque_left) T(static_cast<T&&>(val));
+            deque_size++;
+            return;
+        }
+
+        if (deque_right == deque_capacity - 1) realloc_();
+
+        deque_right++;
+        deque_size++;
+        new (alloc_region + deque_right) T(static_cast<T&&>(val));
+    }
+
+    // Push front for move-only or temporary objects
+    void push_front(T&& val) {
+        if (empty()) {
+            new (alloc_region + deque_left) T(static_cast<T&&>(val));
+            deque_size++;
+            return;
+        }
+
+        if (deque_left == 0) realloc_();
+
+        deque_left--;
+        deque_size++;
+        new (alloc_region + deque_left) T(static_cast<T&&>(val));
     }
 
 
     void pop_back() {
         assert(!empty());
+
+        // Explicitly destroy the object
+        (alloc_region + deque_right)->~T();
 
         if (deque_left == deque_right) {
             deque_size--;
@@ -88,6 +132,10 @@ public:
 
     void pop_front() {
         assert(!empty());
+
+
+        // Explicitly destroy the object
+        (alloc_region + deque_left)->~T();
 
         if (deque_left == deque_right) {
             deque_size--;
@@ -130,17 +178,25 @@ private:
         // Add (deque size / 2) + 1 padding to the left and right in the new region
         size_t padding_size = (deque_size / 2) + 1;
         size_t new_deque_capacity = (2 * padding_size) + deque_size;
-        T* new_alloc_region = new T[new_deque_capacity];
+
+        // Allocate raw memory for the new region
+        T* new_alloc_region = static_cast<T*>(::operator new(new_deque_capacity * sizeof(T)));
 
         // Copy existing elements into the middle of the new region
         size_t new_alloc_ptr = padding_size;
         for (size_t ptr = deque_left; ptr <= deque_right; ++ptr) {
-            *(new_alloc_region + new_alloc_ptr) = *(alloc_region + ptr);
+            //Move the old object
+            new (new_alloc_region + new_alloc_ptr) T(static_cast<T&&>(*(alloc_region + ptr)));
+
+            // Destroy the old object
+            (alloc_region + ptr)->~T();
             new_alloc_ptr++;
         }
 
+        // clear old memory
+        ::operator delete(alloc_region);
+
         // Set new properties
-        delete[] alloc_region;
         alloc_region = new_alloc_region;
         deque_capacity = new_deque_capacity;
         deque_left = padding_size;
