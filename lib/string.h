@@ -13,6 +13,9 @@ class string_view {
 private:
     const char* data_;
     size_t len;
+    [[nodiscard]] const char* data() const noexcept {
+        return data_;
+    }
 
 public:
     string_view(const char* source, size_t len) : data_{source}, len{len} {}
@@ -41,10 +44,6 @@ public:
         if (data_==other.data_) return true;
 
         return memcmp(data_, other.data_, len) == 0;
-    }
-
-    [[nodiscard]] const char* data() const noexcept {
-        return data_;
     }
 
     friend bool operator==(const string_view& lhs, const char* rhs) {
