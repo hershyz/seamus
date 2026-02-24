@@ -27,7 +27,6 @@ unordered_map<string,double> makeTldWeight() {
     m.insert(string("net"),1.0);
     m.insert(string("info"),0.8);
     m.insert(string("biz"),0.8);
-    m.insert(string("tk"),0.8);
 
     return m;
 }
