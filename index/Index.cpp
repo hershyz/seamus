@@ -89,11 +89,13 @@ void IndexChunk::persist() {
         const uint64_t INTERNAL_INDEX_ENTRY_SIZE = 5 + 6 + 2;
 
         for (post p : index[alphabetized_entries[i]].posts) {
-            // Utf8 encoding size of doc & loc offset (no delimiters)
-            uint64_t post_size = SizeOfUtf8(p.doc - last_doc) + SizeOfUtf8(p.loc - last_loc);
+            // Utf8 encoding size of loc offset (no delimiters)
+            uint64_t post_size = SizeOfUtf8(p.loc - last_loc);
 
             // Update offsets
             if (p.doc > last_doc) {
+                // Only write a doc offset if it's a new document, in which case add 1 byte for leading flag
+                post_size += 1 + SizeOfUtf8(p.doc - last_doc);
                 last_doc = p.doc;
                 last_loc = 0;
 
@@ -171,16 +173,21 @@ void IndexChunk::persist() {
         uint32_t last_doc = 0;
         uint32_t last_loc = 0;
 
-        Utf8 doc_buff[6];
-        Utf8 loc_buff[6];
+        Utf8 doc_buff[MAX_UTF8_LEN + 1];
+        Utf8 loc_buff[MAX_UTF8_LEN];
+        doc_buff[0] = 0; // Set first bit of doc_buff to be the flag
 
         // For each word occurrence: <varlen DOC ID/OFFSET><varlen LOC ID/OFFSET>
         // Because we're doing UTF 8, no delimiters
         for (post p : index[alphabetized_entries[i]].posts) {
-            Utf8* doc_end = WriteUtf8(doc_buff, p.doc - last_doc, doc_buff + 6);
-            Utf8* loc_end = WriteUtf8(loc_buff, p.loc - last_loc, loc_buff + 6);
+            // Only write the doc offset if it's a new document, in which case write the offset after the flag
+            if (p.doc > last_doc) {
+                Utf8* doc_end = WriteUtf8(doc_buff + 1, p.doc - last_doc, doc_buff + MAX_UTF8_LEN + 1);
+                fwrite(doc_buff, sizeof(Utf8), doc_end - doc_buff, fd);
+            }
 
-            fwrite(doc_buff, sizeof(Utf8), doc_end - doc_buff, fd);
+            // Write the loc offset
+            Utf8* loc_end = WriteUtf8(loc_buff, p.loc - last_loc, loc_buff + MAX_UTF8_LEN);
             fwrite(loc_buff, sizeof(Utf8), loc_end - loc_buff, fd);
 
             // Update offsets
@@ -202,7 +209,6 @@ vector<string> IndexChunk::sort_entries() {
     vector<string> res;
     res.reserve(index.size());
 
-    // TODO: Have to copy all the keys into res
     for (auto it = index.begin(); it != index.end(); ++it) {
         res.push_back(it->key);
     }
