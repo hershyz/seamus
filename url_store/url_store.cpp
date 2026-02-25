@@ -99,7 +99,7 @@ For each URL:
 void UrlStore::persist() {
     // given the current data and worker this urlstore is assigned to
     // persist to provided file
-    string fileName = string::join("urlstore_", string(WORKER_NUMBER), ".txt");
+    string fileName = string::join("urlstore_", string(WORKER_NUMBER), "_tmp.txt");
     FILE* fd = fopen(fileName.data(), "wx");
 
     if (fd == nullptr) perror("Error opening urlstore file for writing.");
@@ -129,6 +129,11 @@ void UrlStore::persist() {
     }
 
     fclose(fd);
+
+    int rc = rename(fileName.data(), string::join("urlstore_", string(WORKER_NUMBER), ".txt").data()); // atomic rename to ensure readers don't read partial writes
+    if (rc != 0) {
+        perror("Error renaming urlstore file");
+    }
 }
 
 void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
