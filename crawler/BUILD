@@ -1,6 +1,6 @@
 cc_library(
-    name = "ip_carousel",
-    hdrs = ["ip_carousel.h"],
+    name = "domain_carousel",
+    hdrs = ["domain_carousel.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//lib:deque",
