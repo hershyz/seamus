@@ -13,6 +13,8 @@ typedef uint32_t Unicode;
 typedef uint8_t  Utf8;
 typedef uint16_t Utf16;
 
+const size_t MAX_UTF8_LEN = 6;
+
 
 const   Unicode  ReplacementCharacter = 0xfffd;
 
