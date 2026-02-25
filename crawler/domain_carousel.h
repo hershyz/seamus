@@ -19,7 +19,8 @@ struct CrawlTarget {
 class DomainCarousel {
 
 public:
-    static constexpr size_t NUMBER_OF_QUEUES = 1024; // TODO : Switch to env?
+    // TODO : Maybe move this to a static constexpr constructor if possible?
+    static constexpr size_t NUMBER_OF_QUEUES = 16384; // TODO : Switch to env?
     static constexpr uint64_t WAIT_TIME = 2'000'000'000ULL; // TODO : Switch to env? or make website specific
     static constexpr timespec SLEEP_TIME{0, 10'000'000};
 
@@ -84,5 +85,18 @@ public:
         std::lock_guard<std::mutex> lock(carousel[domain_index].domain_lock);
         carousel[domain_index].targets.push_back(move(target));
     }
+
+    // TODO(Aiden) : Add total size counter and size limits on buckets.
+    //  need a way to deal with the first 100k webpages being wikipedia.com
+    //  Likely issues:
+    //      * Over fill one of the buckets which will grow unbounded and eat RAM
+    //      * Break the re-fill logic, will think carousel is full but its all in wikipedia bucket
+    //  Solutions
+    //      * First set bucket limits (required) + mad push_target return bool, success/fail
+    //      * Keep track of min bucket fill level, not total urls
+    //      * These don't fix the 100k wikipedia issue. Has 2 possible solutions:
+    //          - Keep an overflow queue (basically a second frontier, only pull when a "max fill"
+    //              variable is below a threshold
+    //          - Much simpler: Just push the overflowing url to the back of the frontier
 
 };
