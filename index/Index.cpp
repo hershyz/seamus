@@ -5,7 +5,7 @@
 #include "lib/utf8.h"
 #include "lib/utils.h"
 
-void init_index() {
+void update_chunk_number() {
     // Find the latest chunk ID
     if (chunk == 0) {
         while (file_exists(string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk), ".txt"))) chunk++;
@@ -16,7 +16,7 @@ void init_index() {
 
 void IndexChunk::persist() {
     // Create a file (if it already exists, fail -- don't want to overwrite)
-    string path = string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk), ".txt");
+    string path = string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk), "_tmp.txt");
     FILE* fd = fopen(path.data(), "wx");
 
     if (fd == nullptr) perror("Error opening index chunk file for writing.");
@@ -202,7 +202,10 @@ void IndexChunk::persist() {
         fwrite("\n", sizeof(char), 1, fd);
     }
     
+    chunk++;
     fclose(fd);
+    rename(string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk - 1), "_tmp.txt").data(), 
+              string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk - 1), ".txt").data());
 }
 
 vector<string> IndexChunk::sort_entries() {

@@ -1,34 +1,45 @@
+// todo(hershey): revisit the app/crawler_node structure, write memory mapping logic for the crawling priority buckets
+
 #include "lib/thread_pool.h"
 #include "url_store/url_store.h"
 #include "frontier/Frontier.h"
 #include "index/Index.h"
 #include "crawler/domain_carousel.h"
 
+#include <mutex>
+#include <condition_variable>
+
+std::mutex state_mutex;
+std::condition_variable cv;
 
 // TODO(charlie): This needs to be defined globally on bootup (defining here for now)
 const uint32_t NUM_THREADS = 16;
 const uint32_t WORKER_NUMBER = 0;
+static const uint64_t MAX_CHUNK_SIZE = 100ull * 1024 * 1024 * 1024; // 100GB
 
 int main(int argc, char* argv[]) {
     
     // recover index from disk if exists
+    update_chunk_number();
     IndexChunk index_chunk;
-    // TODO(David): add index_chunk recovery logic here
 
     // recover urlStore from disk if exists
+        // urlStore is persisted at same time as index chunk persists
     UrlStore url_store;
     url_store.readFromFile(url_store, WORKER_NUMBER);
 
     // recover frontier
-        // frontier recovery should use snapshots + WAL logs to recover recent state as much as possible
+        // frontier is persisted at same time as index chunk persists
     Frontier frontier(WORKER_NUMBER);
+
     DomainCarousel domain_carousel;
     // Seed frontier with seed list (with correct hash)
 
     // start crawler threads
     ThreadPool crawler_pool(NUM_THREADS);
     for (size_t i = 0; i < NUM_THREADS; i++) {
-        // TODO: enqueue crawler tasks here
+        // TODO: enqueue crawler tasks here w/ worker function that takes in domain_carousel as argument
+
     }
 
     return 0;
@@ -46,6 +57,42 @@ void worker(DomainCarousel& domain_carousel) {
         // network call
         // parse
         // write to disk (likely make a dedicated disk write queue and disk writer thread)
+
+        std::lock_guard<std::mutex> lock(state_mutex);
+
+        if (index_chunk.size() >= MAX_CHUNK_SIZE) {
+            cv.notify_one();
+        }
+    }
+}
+
+// occasionally checks for persist opportunities and persists frontier, urlstore, and index if so
+void persister(IndexChunk& index_chunk, UrlStore& url_store, Frontier& frontier) {
+    while (true) {
+        // Swap all structures
+        Frontier old_frontier(WORKER_NUMBER);
+        UrlStore old_urlstore;
+        IndexChunk old_chunk;
+        
+        {
+            std::unique_lock<std::mutex> lock(state_mutex);
+            cv.wait(lock, [&] { return index_chunk.size() >= MAX_CHUNK_SIZE; });
+
+            // Swap all structures
+            Frontier old_frontier = std::move(frontier);
+            UrlStore old_urlstore = std::move(url_store);
+            IndexChunk old_chunk = std::move(index_chunk);
+
+            frontier = Frontier(WORKER_NUMBER);
+            url_store = UrlStore();
+            index_chunk = IndexChunk();
+        }
+
+        // Now persist without blocking workers
+        old_chunk.persist();
+        old_urlstore.persist();
+        old_frontier.persist();
+        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }
 
