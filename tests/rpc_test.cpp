@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include "../lib/vector.h"
 #include "../lib/rpc_common.h"
+#include "../lib/rpc_urlstore.h"
 #include "../lib/rpc_listener.h"
 
 static void print_header(const char* name) {
@@ -115,9 +116,111 @@ void test_multiple_messages() {
     printf("PASS\n");
 }
 
+// Test: serialize and deserialize a BatchURLStoreUpdateRequest over a real socket.
+void test_batch_urlstore_roundtrip() {
+    print_header("test_batch_urlstore_roundtrip");
+
+    RPCListener* listener = new RPCListener(9102, 1);
+    assert(listener->valid());
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool received = false;
+    std::optional<BatchURLStoreUpdateRequest> result;
+
+    std::thread t([listener, &mtx, &cv, &received, &result]() {
+        listener->listener_loop([&mtx, &cv, &received, &result](int fd) {
+            auto batch = recv_batch_urlstore_update(fd);
+            close(fd);
+            if (batch) {
+                std::lock_guard<std::mutex> lock(mtx);
+                result = std::move(batch);
+                received = true;
+                cv.notify_one();
+            }
+        });
+    });
+    t.detach();
+
+    // Build a batch with two requests
+    BatchURLStoreUpdateRequest batch;
+    batch.reqs.push_back(URLStoreUpdateRequest{
+        string("https://example.com"), string("example link"), 5, 2, 1
+    });
+    batch.reqs.push_back(URLStoreUpdateRequest{
+        string("https://test.org/page"), string("test anchor"), 10, 3, 4
+    });
+
+    string host("127.0.0.1");
+    assert(send_batch_urlstore_update(host, 9102, batch));
+
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&] { return received; });
+
+    assert(result.has_value());
+    assert(result->reqs.size() == 2);
+
+    // First request
+    assert(result->reqs[0].url == "https://example.com");
+    assert(result->reqs[0].anchor_text == "example link");
+    assert(result->reqs[0].num_encountered == 5);
+    assert(result->reqs[0].seed_list_url_hops == 2);
+    assert(result->reqs[0].seed_list_domain_hops == 1);
+
+    // Second request
+    assert(result->reqs[1].url == "https://test.org/page");
+    assert(result->reqs[1].anchor_text == "test anchor");
+    assert(result->reqs[1].num_encountered == 10);
+    assert(result->reqs[1].seed_list_url_hops == 3);
+    assert(result->reqs[1].seed_list_domain_hops == 4);
+
+    printf("PASS\n");
+}
+
+// Test: serialize and deserialize an empty batch.
+void test_batch_urlstore_empty() {
+    print_header("test_batch_urlstore_empty");
+
+    RPCListener* listener = new RPCListener(9103, 1);
+    assert(listener->valid());
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool received = false;
+    std::optional<BatchURLStoreUpdateRequest> result;
+
+    std::thread t([listener, &mtx, &cv, &received, &result]() {
+        listener->listener_loop([&mtx, &cv, &received, &result](int fd) {
+            auto batch = recv_batch_urlstore_update(fd);
+            close(fd);
+            if (batch) {
+                std::lock_guard<std::mutex> lock(mtx);
+                result = std::move(batch);
+                received = true;
+                cv.notify_one();
+            }
+        });
+    });
+    t.detach();
+
+    BatchURLStoreUpdateRequest batch;
+    string host("127.0.0.1");
+    assert(send_batch_urlstore_update(host, 9103, batch));
+
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&] { return received; });
+
+    assert(result.has_value());
+    assert(result->reqs.size() == 0);
+
+    printf("PASS\n");
+}
+
 int main() {
     printf("\n===== RUNNING RPC TESTS =====\n\n");
     test_single_message();
     test_multiple_messages();
+    test_batch_urlstore_roundtrip();
+    test_batch_urlstore_empty();
     printf("\n===== ALL RPC TESTS PASSED =====\n");
 }
