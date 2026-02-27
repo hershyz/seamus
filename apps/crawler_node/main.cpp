@@ -9,7 +9,9 @@
 #include <mutex>
 #include <condition_variable>
 
-std::mutex state_mutex;
+std::mutex index_mutex;
+std::mutex frontier_mutex;
+std::mutex urlstore_mutex;
 std::condition_variable cv;
 
 // TODO(charlie): This needs to be defined globally on bootup (defining here for now)
@@ -26,7 +28,7 @@ int main(int argc, char* argv[]) {
     // recover urlStore from disk if exists
         // urlStore is persisted at same time as index chunk persists
     UrlStore url_store;
-    url_store.readFromFile(url_store, WORKER_NUMBER);
+    url_store.readFromFile(WORKER_NUMBER);
 
     // recover frontier
         // frontier is persisted at same time as index chunk persists
@@ -58,7 +60,8 @@ void worker(DomainCarousel& domain_carousel) {
         // parse
         // write to disk (likely make a dedicated disk write queue and disk writer thread)
 
-        std::lock_guard<std::mutex> lock(state_mutex);
+        // TODO: determine lock order acquisition if needed
+        std::lock_guard<std::mutex> lock(index_mutex);
 
         if (index_chunk.size() >= MAX_CHUNK_SIZE) {
             cv.notify_one();
@@ -69,27 +72,31 @@ void worker(DomainCarousel& domain_carousel) {
 // occasionally checks for persist opportunities and persists frontier, urlstore, and index if so
 void persister(IndexChunk& index_chunk, UrlStore& url_store, Frontier& frontier) {
     while (true) {
-        // Swap all structures
+        // no need to reset frontier or urlstore
         Frontier old_frontier(WORKER_NUMBER);
-        UrlStore old_urlstore;
+        UrlStoreState old_urlstore;
         IndexChunk old_chunk;
         
         {
-            std::unique_lock<std::mutex> lock(state_mutex);
+            std::unique_lock<std::mutex> lock(index_mutex);
             cv.wait(lock, [&] { return index_chunk.size() >= MAX_CHUNK_SIZE; });
 
-            // Swap all structures
-            Frontier old_frontier = std::move(frontier);
-            UrlStore old_urlstore = std::move(url_store);
-            IndexChunk old_chunk = std::move(index_chunk);
-
-            frontier = Frontier(WORKER_NUMBER);
-            url_store = UrlStore();
+            old_chunk = std::move(index_chunk);
             index_chunk = IndexChunk();
         }
 
-        // Now persist without blocking workers
         old_chunk.persist();
+
+        {
+            std::lock_guard<std::mutex> lock(frontier_mutex);
+            old_frontier = frontier;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(urlstore_mutex);
+            old_urlstore = url_store.extractState();
+        }
+
         old_urlstore.persist();
         old_frontier.persist();
         std::this_thread::sleep_for(std::chrono::seconds(10));
