@@ -60,6 +60,14 @@ public:
 
     uint32_t findAnchorId(const string& anchor_text);
 
+    UrlStoreState extractState() const {
+        return state;
+    }
+
+    void resetState() {
+        state.url_data = unordered_map<string, UrlData>();
+        state.anchor_to_id = vector<string>();
+    }
 
     vector<UserAnchorData> getUrlAnchorInfo(const string& url) {
         const UrlData* it = findUrlData(url);
