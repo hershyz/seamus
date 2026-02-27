@@ -102,7 +102,7 @@ For each URL:
     Anchor text list.
         For each list: <anchor_text id (32 bits)> <times seen (32 bits)>\n
 */
-void UrlStore::persist() {
+void UrlStoreState::persist() {
     // given the current data and worker this urlstore is assigned to
     // persist to provided file
     string fileName = string::join("urlstore_", string(WORKER_NUMBER), "_tmp.txt");
@@ -110,8 +110,8 @@ void UrlStore::persist() {
 
     if (fd == nullptr) perror("Error opening urlstore file for writing.");
 
-    fprintf(fd, "%u", state.anchor_to_id.size());
-    for (const string& anchor_text : state.anchor_to_id) {
+    fprintf(fd, "%u", anchor_to_id.size());
+    for (const string& anchor_text : anchor_to_id) {
         fprintf(fd, "%lu", anchor_text.size());
         if (anchor_text.size() > MAX_ANCHOR_TEXT_LEN) {
             fprintf(stderr, "Warning: Anchor text '%s' exceeds max length and will be truncated.\n", anchor_text.data());
@@ -120,7 +120,7 @@ void UrlStore::persist() {
         fwrite("\n", sizeof(char), 1, fd);
     }
     
-    for (const auto& slot : state.url_data) {
+    for (const auto& slot : url_data) {
         const string& url = slot.key;
         if (url.size() > MAX_URL_LEN) continue; // skip urls that exceed max length
         const UrlData& data = slot.value;

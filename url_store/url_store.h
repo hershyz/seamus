@@ -32,6 +32,8 @@ struct UrlData {
 struct UrlStoreState {
     unordered_map<string, UrlData> url_data;
     vector<string> anchor_to_id; // anchor text to corresponding id (index)
+
+    void persist();
 };
 
 
@@ -50,7 +52,6 @@ private:
 public:
     UrlStore();
     ~UrlStore();
-    void persist();
 
     // to read urlStore from disk after a crash, each worker thread will read from its corresponding files and update it's urlstore object accordingly
     void readFromFile(const int worker_number);
