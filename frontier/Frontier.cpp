@@ -32,17 +32,6 @@ unordered_map<string,double> makeTldWeight() {
 }
 static const auto tldWeight = makeTldWeight(); // factory function to avoid having to implement initializer lists lol
 
-bool is_digit(char c) {
-    return c >= '0' && c <= '9';
-}
-
-double max(double i, double j) {
-    if(i > j) {
-        return j;
-    } else {
-        return i;
-    }
-}
 
 double calcPriorityScore(const string& u, int seed_list_dist) {
     // points for http or https however https > http

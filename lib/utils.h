@@ -71,6 +71,19 @@ inline bool file_exists(const string &fname) {
     return stat(fname.data(), &buff) == 0;
 }
 
+
+inline bool is_digit(char c) {
+    return c >= '0' && c <= '9';
+}
+
+auto max(auto n, auto m) {
+    return n > m ? n : m;
+}
+
+auto min(auto n, auto m) {
+    return n < m ? n : m;
+}
+
 // Returns null terminator if index is past string bounds
 // Oterhwise returns char at given index in string
 inline char charAt(const string &str, size_t i) {

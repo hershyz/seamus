@@ -167,7 +167,7 @@ private:
 
     T* alloc_region;                // Underlying heap allocation for the deque
     size_t deque_capacity;          // Capacity of the deque before reallocation is needed (in terms of type T)
-    size_t deque_size;              // Size of the valid portion of the deque (region with elements of type T)
+    std::atomic<size_t> deque_size;              // Size of the valid portion of the deque (region with elements of type T)
     size_t deque_left;              // Left bound on the valid portion of the deque (inclusive)
     size_t deque_right;             // Right bound on the valid portion of the deque (inclusive)
     size_t init_alloc_size = 9;     // Initial size of the heap region (allocated in terms of type T) -- should be an odd number

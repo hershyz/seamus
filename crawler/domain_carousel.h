@@ -20,15 +20,20 @@ class DomainCarousel {
 
 public:
     // TODO : Maybe move this to a static constexpr constructor if possible?
-    static constexpr size_t NUMBER_OF_QUEUES = 16384; // TODO : Switch to env?
+    static constexpr size_t NUMBER_OF_QUEUES = 8192; // TODO : Switch to env?
+    static constexpr size_t MAX_QUEUE_SIZE = 32;
+    static constexpr size_t MAX_SIZE = NUMBER_OF_QUEUES*MAX_QUEUE_SIZE;
+
+private:
+    size_t size = 0;
     static constexpr uint64_t WAIT_TIME = 2'000'000'000ULL; // TODO : Switch to env? or make website specific
     static constexpr timespec SLEEP_TIME{0, 10'000'000};
 
-private:
-    struct DomainQueue {
+
+    struct alignas(64) DomainQueue {
         std::mutex domain_lock;
         uint64_t ready_at = 0;
-        deque<CrawlTarget> targets{};
+        deque<CrawlTarget> targets{}; // TODO : Make statically allocated
     };
     DomainQueue carousel[NUMBER_OF_QUEUES]{};
 
@@ -68,6 +73,7 @@ public:
                         carousel[domain_index].ready_at = time + WAIT_TIME;
                         CrawlTarget target = move(carousel[domain_index].targets.front());
                         carousel[domain_index].targets.pop_front();
+                        size--;
 
                         return target;
                     }
@@ -80,16 +86,21 @@ public:
         }
     }
 
-    void push_target(CrawlTarget&& target) {
-        size_t domain_index = hash_domain(target.domain) % NUMBER_OF_QUEUES;
+    bool push_target(CrawlTarget&& target) {
+        const size_t domain_index = hash_domain(target.domain) % NUMBER_OF_QUEUES;
+        if (carousel[domain_index].targets.size() >= MAX_QUEUE_SIZE) {
+            return false;
+        }
         std::lock_guard<std::mutex> lock(carousel[domain_index].domain_lock);
         carousel[domain_index].targets.push_back(move(target));
+        size++;
+
+        return true;
     }
 
     // TODO(Aiden) : Add total size counter and size limits on buckets.
     //  need a way to deal with the first 100k webpages being wikipedia.com
     //  Likely issues:
-    //      * Over fill one of the buckets which will grow unbounded and eat RAM
     //      * Break the re-fill logic, will think carousel is full but its all in wikipedia bucket
     //  Solutions
     //      * First set bucket limits (required) + mad push_target return bool, success/fail
@@ -98,5 +109,4 @@ public:
     //          - Keep an overflow queue (basically a second frontier, only pull when a "max fill"
     //              variable is below a threshold
     //          - Much simpler: Just push the overflowing url to the back of the frontier
-
 };
