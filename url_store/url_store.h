@@ -29,11 +29,15 @@ struct UrlData {
     uint16_t eod;                                        // End of description
 };
 
+struct UrlStoreState {
+    unordered_map<string, UrlData> url_data;
+    vector<string> anchor_to_id; // anchor text to corresponding id (index)
+};
+
 
 class UrlStore {
 private:
-    unordered_map<string, UrlData> url_data;
-    vector<string> anchor_to_id; // anchor text to corresponding id (index)
+    UrlStoreState state;
 
     const UrlData* findUrlData(const string& url) const;
     UrlData* findUrlData(const string& url);
@@ -49,7 +53,7 @@ public:
     void persist();
 
     // to read urlStore from disk after a crash, each worker thread will read from its corresponding files and update it's urlstore object accordingly
-    static void readFromFile(UrlStore& url_store, const int worker_number);
+    void readFromFile(const int worker_number);
 
     bool addUrl(const string& url, const vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t eot, const uint16_t eod, const uint32_t num_encountered);
     bool updateUrl(const string& url, const vector<string>& anchor_texts, const uint32_t num_encountered);
@@ -65,7 +69,7 @@ public:
         vector<UserAnchorData> user_anchor_data;
         user_anchor_data.reserve(it->anchor_freqs.size());
         for (const AnchorData& anchor_freq : it->anchor_freqs) {
-            user_anchor_data.push_back({&anchor_to_id[anchor_freq.anchor_id] , anchor_freq.freq});
+            user_anchor_data.push_back({&state.anchor_to_id[anchor_freq.anchor_id] , anchor_freq.freq});
         }
 
         return user_anchor_data;

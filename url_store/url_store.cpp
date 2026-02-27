@@ -23,29 +23,29 @@ void UrlStore::client_handler(int fd) {
 }
 
 const UrlData* UrlStore::findUrlData(const string& url) const {
-    const Slot<string, UrlData>* slot = url_data.find(url);
+    const Slot<string, UrlData>* slot = state.url_data.find(url);
     return slot ? &slot->value : nullptr;
 }
 
 UrlData* UrlStore::findUrlData(const string& url) {
-    Slot<string, UrlData>* slot = url_data.find(url);
+    Slot<string, UrlData>* slot = state.url_data.find(url);
     return slot ? &slot->value : nullptr;
 }
 
 uint32_t UrlStore::findAnchorId(const string& anchor_text) {
-    for (size_t i = 0; i < anchor_to_id.size(); i++) {
-        if (anchor_to_id[i] == anchor_text) {
+    for (size_t i = 0; i < state.anchor_to_id.size(); i++) {
+        if (state.anchor_to_id[i] == anchor_text) {
             return i;
         }
     }
-    anchor_to_id.push_back(anchor_text);
-    return anchor_to_id.size() - 1;
+    state.anchor_to_id.push_back(anchor_text);
+    return state.anchor_to_id.size() - 1;
 }
 
 
 bool UrlStore::addUrl(const string& url, const vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t eot, const uint16_t eod, const uint32_t num_encountered) {
     // if url already exists, return false
-    if (url_data.find(url)) return false;
+    if (state.url_data.find(url)) return false;
 
     UrlData new_url_data;
     new_url_data.num_encountered = num_encountered;
@@ -59,7 +59,7 @@ bool UrlStore::addUrl(const string& url, const vector<string>& anchor_texts, con
         new_url_data.anchor_freqs.push_back({anchor_id, 1});
     }
 
-    url_data[url] = new_url_data;
+    state.url_data[url] = new_url_data;
     return true;
 }
 
@@ -110,8 +110,8 @@ void UrlStore::persist() {
 
     if (fd == nullptr) perror("Error opening urlstore file for writing.");
 
-    fprintf(fd, "%u", anchor_to_id.size());
-    for (const string& anchor_text : anchor_to_id) {
+    fprintf(fd, "%u", state.anchor_to_id.size());
+    for (const string& anchor_text : state.anchor_to_id) {
         fprintf(fd, "%lu", anchor_text.size());
         if (anchor_text.size() > MAX_ANCHOR_TEXT_LEN) {
             fprintf(stderr, "Warning: Anchor text '%s' exceeds max length and will be truncated.\n", anchor_text.data());
@@ -120,7 +120,7 @@ void UrlStore::persist() {
         fwrite("\n", sizeof(char), 1, fd);
     }
     
-    for (const auto& slot : url_data) {
+    for (const auto& slot : state.url_data) {
         const string& url = slot.key;
         if (url.size() > MAX_URL_LEN) continue; // skip urls that exceed max length
         const UrlData& data = slot.value;
@@ -142,7 +142,7 @@ void UrlStore::persist() {
     }
 }
 
-void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
+void UrlStore::readFromFile(const int worker_number) {
     // given a urlstore object and worker number, read from corresponding file and update urlstore object accordingly
     string fileName = string::join("urlstore_", string(worker_number), ".txt");
     FILE* fd = fopen(fileName.data(), "r");
@@ -159,7 +159,7 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
         fread(&anchor_text_buff, sizeof(char), anchor_text_len, fd);
         string anchor_text(anchor_text_buff, anchor_text_len);
 
-        url_store.anchor_to_id.push_back(anchor_text);
+        state.anchor_to_id.push_back(anchor_text);
         fread(&dummy, sizeof(char), 1, fd); // consume newline
     }
 
@@ -169,7 +169,7 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
         fread(&url_buff, sizeof(char), url_len, fd);
         string url(url_buff, url_len);
         fread(&dummy, sizeof(char), 1, fd); // consume newline
-        url_store.url_data[url] = UrlData();
+        state.url_data[url] = UrlData();
 
         uint32_t num_encountered, num_anchor_freqs;
         uint16_t seed_distance, eot, eod;
@@ -178,10 +178,10 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
         fread(&eot, sizeof(uint16_t), 1, fd);
         fread(&eod, sizeof(uint16_t), 1, fd);
         fread(&num_anchor_freqs, sizeof(uint32_t), 1, fd);
-        url_store.url_data[url].num_encountered = num_encountered;
-        url_store.url_data[url].seed_distance = seed_distance;
-        url_store.url_data[url].eot = eot;
-        url_store.url_data[url].eod = eod;
+        state.url_data[url].num_encountered = num_encountered;
+        state.url_data[url].seed_distance = seed_distance;
+        state.url_data[url].eot = eot;
+        state.url_data[url].eod = eod;
 
         fread(&dummy, sizeof(char), 1, fd); // consume newline
 
@@ -191,7 +191,7 @@ void UrlStore::readFromFile(UrlStore& url_store, const int worker_number) {
             fread(&freq, sizeof(uint32_t), 1, fd);
             fread(&dummy, sizeof(char), 1, fd); // consume newline
 
-            url_store.url_data[url].anchor_freqs.push_back({anchor_id, freq});
+            state.url_data[url].anchor_freqs.push_back({anchor_id, freq});
         }
     }
 
