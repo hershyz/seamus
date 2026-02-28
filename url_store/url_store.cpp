@@ -22,6 +22,18 @@ void UrlStore::client_handler(int fd) {
     // todo: call internal method 
 }
 
+void UrlStore::persist_snapshot() {
+    // persist current state to disk
+    UrlStoreState old_state;
+    
+    {
+        std::lock_guard<std::mutex> lock(m);
+        old_state = state;
+    }
+
+    old_state.persist();
+}
+
 const UrlData* UrlStore::findUrlData(const string& url) const {
     const Slot<string, UrlData>* slot = state.url_data.find(url);
     return slot ? &slot->value : nullptr;

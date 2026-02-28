@@ -10,8 +10,6 @@
 #include <condition_variable>
 
 std::mutex index_mutex;
-std::mutex frontier_mutex;
-std::mutex urlstore_mutex;
 std::condition_variable cv;
 
 // TODO(charlie): This needs to be defined globally on bootup (defining here for now)
@@ -52,15 +50,20 @@ int main(int argc, char* argv[]) {
 //  both on the producer and consumer end. This is because the frontier is fundamentally blocking
 
 // Does the network call and parse
-void worker(DomainCarousel& domain_carousel) {
+void worker(DomainCarousel& domain_carousel, IndexChunk& index_chunk, UrlStore& url_store, Frontier& frontier) {
     while (true) {
         // Pop from carousel
+        CrawlTarget target = domain_carousel.get_target();
+
         // dns lookup (ig the os or something caches this hopefully)
         // network call
         // parse
-        // write to disk (likely make a dedicated disk write queue and disk writer thread)
 
+        // add new discovered urls to frontier
+            // suggestion: consider batching these to push to frontier per lock acquistion
         // TODO: determine lock order acquisition if needed
+
+        // check if need to write to disk (persist)
         std::lock_guard<std::mutex> lock(index_mutex);
 
         if (index_chunk.size() >= MAX_CHUNK_SIZE) {
@@ -69,12 +72,10 @@ void worker(DomainCarousel& domain_carousel) {
     }
 }
 
-// occasionally checks for persist opportunities and persists frontier, urlstore, and index if so
+// checks for persist opportunities and persists frontier, urlstore, and index if so
 void persister(IndexChunk& index_chunk, UrlStore& url_store, Frontier& frontier) {
     while (true) {
         // no need to reset frontier or urlstore
-        Frontier old_frontier(WORKER_NUMBER);
-        UrlStoreState old_urlstore;
         IndexChunk old_chunk;
         
         {
@@ -87,18 +88,8 @@ void persister(IndexChunk& index_chunk, UrlStore& url_store, Frontier& frontier)
 
         old_chunk.persist();
 
-        {
-            std::lock_guard<std::mutex> lock(frontier_mutex);
-            old_frontier = frontier;
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(urlstore_mutex);
-            old_urlstore = url_store.extractState();
-        }
-
-        old_urlstore.persist();
-        old_frontier.persist();
+        url_store.persist_snapshot();
+        frontier.persist_snapshot();
         std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }

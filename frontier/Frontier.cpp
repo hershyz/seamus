@@ -121,43 +121,53 @@ bool UncrawledComp::operator()(const UncrawledItem& u1, const UncrawledItem& u2)
 //     : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
 
 void Frontier::push(const UncrawledItem &u) {
-    uint32_t& count = curr_urls[u.url];
+    uint32_t& count = state.curr_urls[u.url];
     
     if (count++ == 0) {
-        pq.push(u);
+        state.pq.push(u);
     }
 }
 
 void Frontier::push(string &url, int seed_list_dist) {
-    uint32_t& count = curr_urls[url];
+    uint32_t& count = state.curr_urls[url];
     
     if (count++ == 0) {
-        pq.push(UncrawledItem(static_cast<string&&>(url), seed_list_dist));
+        state.pq.push(UncrawledItem(static_cast<string&&>(url), seed_list_dist));
     }
 }
 
 void Frontier::pop() {
-    if(pq.size() != 0) {
-        pq.pop();
+    if(state.pq.size() != 0) {
+        state.pq.pop();
     } 
 }
 
 CrawledItem Frontier::front() {
-    assert(!pq.empty());
+    assert(!state.pq.empty());
 
     UncrawledItem front =
     static_cast<UncrawledItem&&>(
-        const_cast<UncrawledItem&>(pq.front())
+        const_cast<UncrawledItem&>(state.pq.front())
     );
 
-    return CrawledItem(static_cast<string&&>(front.url), front.seed_list_dist, curr_urls[front.url]);
+    return CrawledItem(static_cast<string&&>(front.url), front.seed_list_dist, state.curr_urls[front.url]);
 }
 
 size_t Frontier::size() {
-    return pq.size();
+    return state.pq.size();
 }
 
-void Frontier::persist() {
+void Frontier::persist_snapshot() {
+    FrontierState old_state;
+    {
+        std::lock_guard<std::mutex> lock(m);
+        old_state = state;
+    }
+
+    old_state.persist();
+}
+
+void FrontierState::persist() {
         // Create a file (if it already exists, fail -- don't want to overwrite)
     string path = string::join("frontier_", string(worker_id), ".txt");
     FILE* fd = fopen(path.data(), "wx");

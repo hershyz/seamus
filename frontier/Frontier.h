@@ -40,14 +40,22 @@ struct UncrawledComp {
     bool operator()(const UncrawledItem& u1, const UncrawledItem& u2) const;
 };
 
-class Frontier {
-private:
+struct FrontierState {
     priority_queue<UncrawledItem, vector<UncrawledItem>, UncrawledComp> pq;
     unordered_map<string, uint32_t> curr_urls;
     uint16_t worker_id;
+
+    FrontierState(size_t initial_map_size = 2048, double initial_loading_factor = 0.65, uint16_t worker_id_init) : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
+    void persist();
+};
+
+class Frontier {
+private:
+    std::mutex m;
+    FrontierState state;
 public:
     Frontier(uint16_t worker_id_init, size_t initial_map_size = 2048, double initial_loading_factor = 0.65) 
-        : curr_urls(initial_map_size, initial_loading_factor), worker_id(worker_id_init) { }
+        : state(initial_map_size, initial_loading_factor, worker_id_init) { }
 
     void push(const UncrawledItem &u);
 
@@ -57,7 +65,7 @@ public:
 
     CrawledItem front();
 
-    void persist();
+    void persist_snapshot();
 
     size_t size();
 };

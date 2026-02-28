@@ -5,7 +5,7 @@
 #include "../lib/rpc_urlstore.h"
 #include <cstdint>
 #include <thread>
-
+#include <mutex>
 
 struct AnchorData {
     uint32_t anchor_id;
@@ -39,6 +39,7 @@ struct UrlStoreState {
 
 class UrlStore {
 private:
+    std::mutex m;
     UrlStoreState state;
 
     const UrlData* findUrlData(const string& url) const;
@@ -55,6 +56,8 @@ public:
 
     // to read urlStore from disk after a crash, each worker thread will read from its corresponding files and update it's urlstore object accordingly
     void readFromFile(const int worker_number);
+
+    void persist_snapshot();
 
     bool addUrl(const string& url, const vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t eot, const uint16_t eod, const uint32_t num_encountered);
     bool updateUrl(const string& url, const vector<string>& anchor_texts, const uint32_t num_encountered);
