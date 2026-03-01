@@ -7,26 +7,9 @@
 #include <thread>
 
 
-struct AnchorData {
-    uint32_t anchor_id;
-    uint32_t freq;
-};
-
-
 struct UserAnchorData {
     const string* anchor_text;
     uint32_t freq;
-};
-
-
-// TODO: decide if vector is better than hashmap for anchor_freqs (cache locality vs. O(1) average lookup)
-struct UrlData {
-    vector<AnchorData> anchor_freqs;                     // anchor text id to frequency since its last update (potentially size >1)
-    uint32_t num_encountered;                            // Number of additional times this URL has been
-    uint16_t seed_distance;                              // Distance from seed list
-    uint16_t domain_dist;                                // Domain distance from seed list TODO(charlie): implement this feature
-    uint16_t eot;                                        // End of title
-    uint16_t eod;                                        // End of description
 };
 
 
