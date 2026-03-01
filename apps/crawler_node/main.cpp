@@ -4,8 +4,8 @@
 #include "url_store/url_store.h"
 #include "frontier/Frontier.h"
 #include "index/Index.h"
+#include "index/IndexChunkManager.h"
 #include "crawler/domain_carousel.h"
-
 #include <mutex>
 #include <condition_variable>
 
@@ -15,13 +15,15 @@ std::condition_variable cv;
 // TODO(charlie): This needs to be defined globally on bootup (defining here for now)
 const uint32_t NUM_THREADS = 16;
 const uint32_t WORKER_NUMBER = 0;
-static const uint64_t MAX_CHUNK_SIZE = 100ull * 1024 * 1024 * 1024; // 100GB
+
+const size_t FLUSH_THRESHOLD = 10 * 1024 * 1024; // 10 MB of pages
+
 
 int main(int argc, char* argv[]) {
     
     // recover index from disk if exists
     update_chunk_number();
-    IndexChunk index_chunk;
+    IndexChunkManager index_manager;
 
     // recover urlStore from disk if exists
         // urlStore is persisted at same time as index chunk persists
@@ -37,10 +39,12 @@ int main(int argc, char* argv[]) {
 
     // start crawler threads
     ThreadPool crawler_pool(NUM_THREADS);
-    for (size_t i = 0; i < NUM_THREADS; i++) {
+    for (size_t i = 0; i < NUM_THREADS - 1; i++) {
         // TODO: enqueue crawler tasks here w/ worker function that takes in domain_carousel as argument
 
     }
+
+    // spin up persister thread
 
     return 0;
 }
@@ -50,47 +54,38 @@ int main(int argc, char* argv[]) {
 //  both on the producer and consumer end. This is because the frontier is fundamentally blocking
 
 // Does the network call and parse
-void worker(DomainCarousel& domain_carousel, IndexChunk& index_chunk, UrlStore& url_store, Frontier& frontier) {
+void worker(DomainCarousel& domain_carousel, IndexChunkManager& index_manager, UrlStore& url_store, Frontier& frontier) {
+    vector<...> page_buf;
+    size_t page_buf_size = 0;
+
     while (true) {
         // Pop from carousel
         CrawlTarget target = domain_carousel.get_target();
-
+        
         // dns lookup (ig the os or something caches this hopefully)
         // network call
-        // parse
+        // parse and add content to page_buf
 
         // add new discovered urls to frontier
-            // suggestion: consider batching these to push to frontier per lock acquistion
-        // TODO: determine lock order acquisition if needed
-
-        // check if need to write to disk (persist)
-        std::lock_guard<std::mutex> lock(index_mutex);
-
-        if (index_chunk.size() >= MAX_CHUNK_SIZE) {
-            cv.notify_one();
+            // suggestion: consider batching these to push to frontier
+        
+        
+        // suggestion: batch parsed pages to submit to IndexChunkManager
+        if (page_buf.size() >= FLUSH_THRESHOLD) {
+            index_manager.add_data();
+            page_buf.clear();
         }
     }
 }
 
 // checks for persist opportunities and persists frontier, urlstore, and index if so
-void persister(IndexChunk& index_chunk, UrlStore& url_store, Frontier& frontier) {
+void persister(IndexChunkManager& index_manager, UrlStore& url_store, Frontier& frontier) {
     while (true) {
         // no need to reset frontier or urlstore
-        IndexChunk old_chunk;
-        
-        {
-            std::unique_lock<std::mutex> lock(index_mutex);
-            cv.wait(lock, [&] { return index_chunk.size() >= MAX_CHUNK_SIZE; });
-
-            old_chunk = std::move(index_chunk);
-            index_chunk = IndexChunk();
-        }
-
+        IndexChunk old_chunk = index_manager.persist_reset();
         old_chunk.persist();
-
         url_store.persist_snapshot();
         frontier.persist_snapshot();
-        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }
 
