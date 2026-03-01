@@ -1,6 +1,7 @@
 // todo(hershey): revisit the app/crawler_node structure, write memory mapping logic for the crawling priority buckets
 
 #include "lib/thread_pool.h"
+#include "lib/deque.h"
 #include "url_store/url_store.h"
 #include "frontier/Frontier.h"
 #include "index/Index.h"
@@ -9,14 +10,18 @@
 #include <mutex>
 #include <condition_variable>
 
-std::mutex index_mutex;
-std::condition_variable cv;
 
-// TODO(charlie): This needs to be defined globally on bootup (defining here for now)
+
+// TODO: This needs to be defined globally on bootup (defining here for now)
 const uint32_t NUM_THREADS = 16;
 const uint32_t WORKER_NUMBER = 0;
 
 const size_t FLUSH_THRESHOLD = 10 * 1024 * 1024; // 10 MB of pages
+
+// TODO(charlie): encapsulate logic into class wrapper
+std::mutex m;
+std::condition_variable cv;
+deque<...> chunkWriteReqs;
 
 
 int main(int argc, char* argv[]) {
@@ -39,10 +44,12 @@ int main(int argc, char* argv[]) {
 
     // start crawler threads
     ThreadPool crawler_pool(NUM_THREADS);
-    for (size_t i = 0; i < NUM_THREADS - 1; i++) {
+    for (size_t i = 0; i < NUM_THREADS; i++) {
         // TODO: enqueue crawler tasks here w/ worker function that takes in domain_carousel as argument
 
     }
+
+    // spin up writer thread
 
     // spin up persister thread
 
@@ -56,7 +63,7 @@ int main(int argc, char* argv[]) {
 // Does the network call and parse
 void worker(DomainCarousel& domain_carousel, IndexChunkManager& index_manager, UrlStore& url_store, Frontier& frontier) {
     vector<...> page_buf;
-    size_t page_buf_size = 0;
+    size_t page_buf_bytes = 0;
 
     while (true) {
         // Pop from carousel
@@ -71,10 +78,34 @@ void worker(DomainCarousel& domain_carousel, IndexChunkManager& index_manager, U
         
         
         // suggestion: batch parsed pages to submit to IndexChunkManager
-        if (page_buf.size() >= FLUSH_THRESHOLD) {
-            index_manager.add_data();
-            page_buf.clear();
+        if (page_buf_bytes >= FLUSH_THRESHOLD) {
+            // TODO(charlie): encapsulate pushing to chunkWriteReqs in class wrapper
+            {
+                std::unique_lock<std::mutex> lock(m);
+                chunkWriteReqs.push_back(std::move(page_buf));
+            }
+
+            cv.notify_one();
+            page_buf = vector<...>();
+            page_buf_bytes = 0;
         }
+    }
+}
+
+// responsible for taking all content from parsed pages and writing to in-memory indexChunk
+void writer(IndexChunkManager& index_manager) {
+    ... writeReq;
+    while (true) {
+        // pop from request queue
+        {
+            std::unique_lock<std::mutex> lock(m);
+            cv.wait(lock, [] { return !chunkWriteReqs.empty(); });
+            writeReq = std::move(chunkWriteReqs.front());
+            chunkWriteReqs.pop_front();
+        }
+
+        // write to index_manager chunk
+        index_manager.add_data(writeReq);
     }
 }
 
