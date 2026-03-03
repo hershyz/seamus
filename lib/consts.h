@@ -18,8 +18,9 @@ inline const char* get_machine_addr(size_t machine_id) {
 
 // Crawler
 constexpr size_t CRAWLER_CAROUSEL_SIZE = 8192;
-constexpr size_t CRAWLER_THREADPOOL_SIZE = 1024;
+constexpr size_t CRAWLER_THREADPOOL_SIZE = 512;
 static_assert(CRAWLER_CAROUSEL_SIZE % CRAWLER_THREADPOOL_SIZE == 0, "[consts.h]: CRAWLER_CAROUSEL_SIZE must be a multiple of CRAWLER_THREADPOOL_SIZE");
 static_assert(CRAWLER_CAROUSEL_SIZE >= CRAWLER_THREADPOOL_SIZE, "[consts.h]: CRAWLER_THREADPOOL_SIZE cannot be greater than CRAWLER_CAROUSEL_SIZE");
 
 constexpr size_t PRIORITY_BUCKETS = 8;
+constexpr size_t WAIT_TIME_SEC = 2; 
