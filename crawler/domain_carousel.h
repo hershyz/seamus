@@ -14,7 +14,7 @@ struct CrawlTarget {
 
 
 class DomainCarousel {
-private:
+public:
 
     // Queue and carousel state
     struct alignas(64) DomainQueue {

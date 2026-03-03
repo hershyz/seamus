@@ -5,6 +5,7 @@
 
 #include <sys/stat.h>
 #include "string.h"
+#include "consts.h"
 
 
 inline string_view stem_word(string_view word) {
@@ -102,6 +103,21 @@ inline string extract_domain(const string& url) {
     }
 
     return string(p, domain_len);
+}
+
+// Returns the index into MACHINES[] for the machine responsible for a given URL's domain
+inline size_t get_destination_machine_from_url(const string& url) {
+    string domain = extract_domain(url);
+
+    size_t hash = 0xcbf29ce484222325ULL;
+    size_t fnv_prime = 0x100000001b3ULL;
+
+    for (size_t i = 0; i < domain.size(); ++i) {
+        hash ^= static_cast<unsigned char>(domain[i]);
+        hash *= fnv_prime;
+    }
+
+    return hash % NUM_MACHINES;
 }
 
 // Move and swap utilities
