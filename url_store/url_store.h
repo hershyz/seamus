@@ -15,6 +15,8 @@ struct UserAnchorData {
 struct UrlStoreState {
     unordered_map<string, UrlData> url_data;
     vector<string> anchor_to_id; // anchor text to corresponding id (index)
+
+    void persist();
 };
 
 class UrlStore {

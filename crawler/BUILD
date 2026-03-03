@@ -2,7 +2,7 @@ load("@rules_cc//cc:defs.bzl", "cc_executable", "cc_library")
 
 cc_executable(
     name = "crawler_node",
-    srcs = ["main.cpp"],
+    srcs = ["driver.cpp"],
     deps = [
         "//frontier:Frontier",
         "//url_store:UrlStore",
