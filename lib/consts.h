@@ -23,4 +23,5 @@ static_assert(CRAWLER_CAROUSEL_SIZE % CRAWLER_THREADPOOL_SIZE == 0, "[consts.h]:
 static_assert(CRAWLER_CAROUSEL_SIZE >= CRAWLER_THREADPOOL_SIZE, "[consts.h]: CRAWLER_THREADPOOL_SIZE cannot be greater than CRAWLER_CAROUSEL_SIZE");
 
 constexpr size_t PRIORITY_BUCKETS = 8;
-constexpr size_t WAIT_TIME_SEC = 2; 
+constexpr size_t CRAWLER_BACKOFF_TIME_SEC = 2;
+constexpr size_t PERSIST_INTERVAL_SEC = 60;
