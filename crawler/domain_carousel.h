@@ -52,10 +52,4 @@ public:
 
         return hash;
     }
-
-
-    // Carousel worker, monitors [carousel_left, carousel_right] as a non-overlapping interval of queues on the carousel
-    static void carousel_worker(size_t carousel_left, size_t carousel_right) {
-
-    }
 };
