@@ -17,6 +17,8 @@ inline const char* get_machine_addr(size_t machine_id) {
 
 
 // Crawler
+constexpr uint16_t CRAWLER_LISTENER_PORT = 8080;
+constexpr size_t CRAWLER_LISTENER_THREADS = 16;
 constexpr size_t CRAWLER_CAROUSEL_SIZE = 8192;
 constexpr size_t CRAWLER_THREADPOOL_SIZE = 512;
 static_assert(CRAWLER_CAROUSEL_SIZE % CRAWLER_THREADPOOL_SIZE == 0, "[consts.h]: CRAWLER_CAROUSEL_SIZE must be a multiple of CRAWLER_THREADPOOL_SIZE");
