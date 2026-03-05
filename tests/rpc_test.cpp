@@ -635,6 +635,103 @@ void test_crawl_target_serialize_multiple_sequential() {
     delete[] buf;
 }
 
+// Test: serialize and deserialize a BatchCrawlTargetRequest over a real socket.
+void test_batch_crawl_target_request_roundtrip() {
+    print_header("test_batch_crawl_target_request_roundtrip");
+
+    RPCListener* listener = new RPCListener(9111, 1);
+    assert(listener->valid());
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool received = false;
+    std::optional<BatchCrawlTargetRequest> result;
+
+    std::thread t([listener, &mtx, &cv, &received, &result]() {
+        listener->listener_loop([&mtx, &cv, &received, &result](int fd) {
+            auto batch = recv_batch_crawl_target_request(fd);
+            close(fd);
+            if (batch) {
+                std::lock_guard<std::mutex> lock(mtx);
+                result = std::move(batch);
+                received = true;
+                cv.notify_one();
+            }
+        });
+    });
+    t.detach();
+
+    BatchCrawlTargetRequest batch;
+    batch.targets.push_back(CrawlTarget{string("example.com"), string("https://example.com/page"), 3, 1});
+    batch.targets.push_back(CrawlTarget{string("test.org"), string("http://test.org/foo"), 10, 5});
+    batch.targets.push_back(CrawlTarget{string("bar.net"), string("https://bar.net/baz?q=1"), 0, 0});
+
+    string host("127.0.0.1");
+    assert(send_batch_crawl_target_request(host, 9111, batch));
+
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&] { return received; });
+
+    assert(result.has_value());
+    assert(result->targets.size() == 3);
+
+    assert(result->targets[0].domain == "example.com");
+    assert(result->targets[0].url == "https://example.com/page");
+    assert(result->targets[0].seed_distance == 3);
+    assert(result->targets[0].domain_dist == 1);
+
+    assert(result->targets[1].domain == "test.org");
+    assert(result->targets[1].url == "http://test.org/foo");
+    assert(result->targets[1].seed_distance == 10);
+    assert(result->targets[1].domain_dist == 5);
+
+    assert(result->targets[2].domain == "bar.net");
+    assert(result->targets[2].url == "https://bar.net/baz?q=1");
+    assert(result->targets[2].seed_distance == 0);
+    assert(result->targets[2].domain_dist == 0);
+
+    printf("PASS\n");
+}
+
+// Test: serialize and deserialize an empty BatchCrawlTargetRequest.
+void test_batch_crawl_target_request_empty() {
+    print_header("test_batch_crawl_target_request_empty");
+
+    RPCListener* listener = new RPCListener(9112, 1);
+    assert(listener->valid());
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool received = false;
+    std::optional<BatchCrawlTargetRequest> result;
+
+    std::thread t([listener, &mtx, &cv, &received, &result]() {
+        listener->listener_loop([&mtx, &cv, &received, &result](int fd) {
+            auto batch = recv_batch_crawl_target_request(fd);
+            close(fd);
+            if (batch) {
+                std::lock_guard<std::mutex> lock(mtx);
+                result = std::move(batch);
+                received = true;
+                cv.notify_one();
+            }
+        });
+    });
+    t.detach();
+
+    BatchCrawlTargetRequest batch;
+    string host("127.0.0.1");
+    assert(send_batch_crawl_target_request(host, 9112, batch));
+
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&] { return received; });
+
+    assert(result.has_value());
+    assert(result->targets.size() == 0);
+
+    printf("PASS\n");
+}
+
 int main() {
     printf("\n===== RUNNING RPC TESTS =====\n\n");
     test_single_message();
@@ -653,5 +750,7 @@ int main() {
     test_crawl_target_serialize_deserialize_max_values();
     test_crawl_target_deserialize_truncated_buffer();
     test_crawl_target_serialize_multiple_sequential();
+    test_batch_crawl_target_request_roundtrip();
+    test_batch_crawl_target_request_empty();
     printf("\n===== ALL RPC TESTS PASSED =====\n");
 }

@@ -1,6 +1,9 @@
 #pragma once
 #include "string.h"
+#include "vector.h"
+#include "rpc_common.h"
 #include <cstring>
+#include <optional>
 
 
 // Encapsulation of data that we track as we crawl
@@ -83,4 +86,84 @@ inline const char* deserialize_crawl_target(const char* buf, size_t remaining, C
     buf += sizeof(uint16_t);
 
     return buf;
+}
+
+
+struct BatchCrawlTargetRequest {
+    vector<CrawlTarget> targets;
+};
+
+
+// Helper to serialize + send a BatchCrawlTargetRequest over network
+inline bool send_batch_crawl_target_request(const string& host, uint16_t port, const BatchCrawlTargetRequest& batch) {
+    // 4 bytes for count, per target: 4 + domain.size() + 4 + url.size() + 2 + 2
+    size_t total = sizeof(uint32_t);
+    for (size_t i = 0; i < batch.targets.size(); i++) {
+        total += crawl_target_serialized_size(batch.targets[i]);
+    }
+
+    char* buf = new char[total];
+    size_t off = 0;
+
+    uint32_t count = htonl(static_cast<uint32_t>(batch.targets.size()));
+    std::memcpy(buf + off, &count, sizeof(uint32_t));
+    off += sizeof(uint32_t);
+
+    for (size_t i = 0; i < batch.targets.size(); i++) {
+        const auto& ct = batch.targets[i];
+
+        // domain (length-prefixed, network byte order)
+        uint32_t domain_len = htonl(static_cast<uint32_t>(ct.domain.size()));
+        std::memcpy(buf + off, &domain_len, sizeof(uint32_t));
+        off += sizeof(uint32_t);
+        std::memcpy(buf + off, ct.domain.data(), ct.domain.size());
+        off += ct.domain.size();
+
+        // url (length-prefixed, network byte order)
+        uint32_t url_len = htonl(static_cast<uint32_t>(ct.url.size()));
+        std::memcpy(buf + off, &url_len, sizeof(uint32_t));
+        off += sizeof(uint32_t);
+        std::memcpy(buf + off, ct.url.data(), ct.url.size());
+        off += ct.url.size();
+
+        // seed_distance
+        uint16_t sd = htons(ct.seed_distance);
+        std::memcpy(buf + off, &sd, sizeof(uint16_t));
+        off += sizeof(uint16_t);
+
+        // domain_dist
+        uint16_t dd = htons(ct.domain_dist);
+        std::memcpy(buf + off, &dd, sizeof(uint16_t));
+        off += sizeof(uint16_t);
+    }
+
+    bool ok = send_buffer(host, port, buf, total);
+    delete[] buf;
+    return ok;
+}
+
+
+// Helper to deserialize a BatchCrawlTargetRequest from a socket fd
+inline std::optional<BatchCrawlTargetRequest> recv_batch_crawl_target_request(int fd) {
+    uint32_t count;
+    if (!recv_u32(fd, count)) return std::nullopt;
+
+    BatchCrawlTargetRequest batch;
+    for (uint32_t i = 0; i < count; i++) {
+        auto domain = recv_string(fd);
+        if (!domain) return std::nullopt;
+
+        auto url = recv_string(fd);
+        if (!url) return std::nullopt;
+
+        uint16_t seed_distance;
+        if (!recv_u16(fd, seed_distance)) return std::nullopt;
+
+        uint16_t domain_dist;
+        if (!recv_u16(fd, domain_dist)) return std::nullopt;
+
+        batch.targets.push_back(CrawlTarget{std::move(*domain), std::move(*url), seed_distance, domain_dist});
+    }
+
+    return std::optional<BatchCrawlTargetRequest>(std::move(batch));
 }
