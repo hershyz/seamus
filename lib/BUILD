@@ -1,6 +1,12 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "consts",
+    hdrs = ["consts.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "mutex",
     hdrs = ["mutex.h"],
     visibility = ["//visibility:public"],
@@ -102,4 +108,11 @@ cc_library(
     hdrs = ["rpc_listener.h"],
     visibility = ["//visibility:public"],
     deps = [":thread_pool"],
+)
+
+cc_library(
+    name = "rpc_crawler",
+    hdrs = ["rpc_crawler.h"],
+    visibility = ["//visibility:public"],
+    deps = [":string", ":vector", ":rpc_common"],
 )

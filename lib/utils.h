@@ -5,6 +5,7 @@
 
 #include <sys/stat.h>
 #include "string.h"
+#include "consts.h"
 
 
 inline string_view stem_word(string_view word) {
@@ -75,6 +76,48 @@ inline bool file_exists(const string &fname) {
 // Oterhwise returns char at given index in string
 inline char charAt(const string &str, size_t i) {
     return i >= str.size() ? '\0' : str[i];
+}
+
+// Extracts just the domain from a URL
+// e.g. "https://www.example.com/path/page" -> "example.com"
+inline string extract_domain(const string& url) {
+    const char* p = url.data();
+    size_t len = url.size();
+
+    // Strip http:// or https://
+    if (len >= 8 && memcmp(p, "https://", 8) == 0) {
+        p += 8; len -= 8;
+    } else if (len >= 7 && memcmp(p, "http://", 7) == 0) {
+        p += 7; len -= 7;
+    }
+
+    // Strip www.
+    if (len >= 4 && memcmp(p, "www.", 4) == 0) {
+        p += 4; len -= 4;
+    }
+
+    // Find end of domain (first '/' or end of string)
+    size_t domain_len = 0;
+    while (domain_len < len && p[domain_len] != '/') {
+        domain_len++;
+    }
+
+    return string(p, domain_len);
+}
+
+// Returns the index into MACHINES[] for the machine responsible for a given URL's domain
+inline size_t get_destination_machine_from_url(const string& url) {
+    string domain = extract_domain(url);
+
+    size_t hash = 0xcbf29ce484222325ULL;
+    size_t fnv_prime = 0x100000001b3ULL;
+
+    for (size_t i = 0; i < domain.size(); ++i) {
+        hash ^= static_cast<unsigned char>(domain[i]);
+        hash *= fnv_prime;
+    }
+
+    return hash % NUM_MACHINES;
 }
 
 // Move and swap utilities
