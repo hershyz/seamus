@@ -3,14 +3,14 @@
 //
 
 #pragma once
-#include "../lib/consts.h"
+#include "lib/consts.h"
 #include "lib/deque.h"
 #include "lib/string.h"
+#include "lib/utils.h"
 #include <chrono>
 #include <mutex>
 #include <thread>
 
-#include "lib/utils.h"
 
 
 using namespace std::chrono_literals;
