@@ -72,8 +72,8 @@ int main() {
 
     for (auto it = map.begin(); it != map.end(); ++it) {
         count++;
-        sum_keys += *it;
-        sum_values += &it;
+        sum_keys += it->key;
+        sum_values += it->value;
     }
 
     assert(count == map.size());

@@ -76,7 +76,7 @@ cc_test(
 cc_test(
     name = "unordered_map_test",
     srcs = ["unordered_map_test.cpp"],
-    deps = ["//lib:unordered_map"],
+    deps = ["//lib:unordered_map", "//lib:utils", "//lib:vector"],
 )
 
 cc_test(
@@ -98,7 +98,7 @@ cc_test(
 cc_test(
     name = "utils_test",
     srcs = ["utils_test.cpp"],
-    deps = ["//lib:utils"],
+    deps = ["//lib:utils", "//lib:consts"],
 )
 
 cc_test(
