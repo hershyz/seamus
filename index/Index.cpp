@@ -216,3 +216,42 @@ vector<string> IndexChunk::sort_entries() {
     radix_sort(res);
     return res;
 }
+
+bool IndexChunk::add_page(const string &path) {
+    FILE* fd = fopen(path.data(), "r");
+
+    // TODO: This exact formatting has to be decided on and changed
+    // The HTML parser from HW outputs the words in an HTML page, but that's silly compared to a text file
+    // Assuming some header for title, body, and anchor sections
+    
+    char buff[4096];
+
+    // Check title header
+    fgets(buff, sizeof(buff), fd);
+    if (strcmp(buff, "title")) {
+        perror("Expected title header missing.\n");
+    }
+
+    // TODO: Protect this for parallelism, but have to discuss how we're distributing this
+    uint32_t doc = curr_doc_++;
+
+    // Start a counter for word locations
+    uint32_t loc = 0;
+
+    // TODO: Read all words in title
+    while(fgets(buff, sizeof(buff), fd)) {
+
+        // TODO: When new line is hit, title section is over
+    }
+
+    // Check body header
+    fgets(buff, sizeof(buff), fd);
+    if (strcmp(buff, "body")) {
+        perror("Expected body header missing.\n");
+    }
+
+    // TODO: Parse body words
+    while(fgets(buff, sizeof(buff), fd)) {
+        // Discussin w aiden on how string lib supports this
+    }
+}
