@@ -2,12 +2,25 @@
 
 #include "../lib/vector.h"
 #include "../lib/string.h"
+#include "../lib/deque.h"
+#include "../lib/rpc_crawler.h"
 #include "lib/consts.h"
 #include <cassert>
+#include <mutex>
+#include <chrono>
+
+
+struct BackoffEntry {
+    CrawlTarget target;
+    std::chrono::steady_clock::time_point rejected_at;
+};
 
 
 class BucketManager {
 public:
+
+    std::mutex backoff_lock;
+    deque<BackoffEntry> backoff_queue;
 
     BucketManager(vector<string> bucket_files_in) : bucket_files(static_cast<vector<string>&&>(bucket_files_in)) {
         assert(bucket_files.size() == PRIORITY_BUCKETS);
@@ -26,6 +39,8 @@ public:
 
     // todo(hershey): write helper to persist in-memory buckets into disk buckets
     // This should run in a detached thread on an interval (PERSIST_INTERVAL_SEC in consts.h)
+
+    // todo(hershey): write a detached thread routine to feed the carousel from the buckets (using feed_carousel() as a util function)
 
 
 private:

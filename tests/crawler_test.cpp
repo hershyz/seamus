@@ -125,10 +125,14 @@ void test_feed_carousel_concurrent() {
         }
     }
 
+    // Shared backoff queue for rejected targets
+    std::mutex backoff_lock;
+    deque<BackoffEntry> backoff_queue;
+
     // Call feed_carousel concurrently from two threads
     int16_t result1 = -1, result2 = -1;
-    std::thread t1([&]() { result1 = dc.feed_carousel(); });
-    std::thread t2([&]() { result2 = dc.feed_carousel(); });
+    std::thread t1([&]() { result1 = dc.feed_carousel(backoff_lock, backoff_queue); });
+    std::thread t2([&]() { result2 = dc.feed_carousel(backoff_lock, backoff_queue); });
     t1.join();
     t2.join();
 
@@ -139,12 +143,12 @@ void test_feed_carousel_concurrent() {
     // At least one thread must have found a non-empty bucket
     assert(result1 >= 0 || result2 >= 0);
 
-    // Count total targets across all carousel slots
-    size_t total = 0;
+    // All 20 targets should be in the carousel or the backoff queue
+    size_t carousel_total = 0;
     for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
-        total += dc.carousel[i].targets.size();
+        carousel_total += dc.carousel[i].targets.size();
     }
-    assert(total == 20);
+    assert(carousel_total + backoff_queue.size() == 20);
 
     printf("PASS\n");
 }
@@ -156,7 +160,9 @@ void test_feed_carousel_empty() {
     DomainCarousel dc;
 
     // All buckets are empty, should return -1
-    int16_t result = dc.feed_carousel();
+    std::mutex backoff_lock;
+    deque<BackoffEntry> backoff_queue;
+    int16_t result = dc.feed_carousel(backoff_lock, backoff_queue);
     assert(result == -1);
 
     // Carousel should still be empty
