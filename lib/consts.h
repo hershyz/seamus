@@ -2,6 +2,12 @@
 
 #include <cassert>
 #include <cstddef>
+#include "vector.h"
+#include "string.h"
+
+
+// Logging (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=NONE)
+constexpr uint8_t LOG_LEVEL = 0;
 
 
 // Global
@@ -25,6 +31,16 @@ constexpr size_t CRAWLER_MAX_QUEUE_SIZE = 32;
 static_assert(CRAWLER_CAROUSEL_SIZE % CRAWLER_THREADPOOL_SIZE == 0, "[consts.h]: CRAWLER_CAROUSEL_SIZE must be a multiple of CRAWLER_THREADPOOL_SIZE");
 static_assert(CRAWLER_CAROUSEL_SIZE >= CRAWLER_THREADPOOL_SIZE, "[consts.h]: CRAWLER_THREADPOOL_SIZE cannot be greater than CRAWLER_CAROUSEL_SIZE");
 
-constexpr size_t PRIORITY_BUCKETS = 8;
 constexpr size_t CRAWLER_BACKOFF_TIME_SEC = 2;
 constexpr size_t PERSIST_INTERVAL_SEC = 60;
+
+constexpr size_t PRIORITY_BUCKETS = 8;
+inline vector<string> get_frontier_bucket_files() {
+    vector<string> files;
+    for (size_t i = 0; i < PRIORITY_BUCKETS; ++i) {
+        char buf[16];
+        int len = snprintf(buf, sizeof(buf), "bucket_p%zu", i);
+        files.push_back(string(buf, static_cast<size_t>(len)));
+    }
+    return files;
+}

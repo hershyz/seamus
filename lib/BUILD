@@ -4,6 +4,10 @@ cc_library(
     name = "consts",
     hdrs = ["consts.h"],
     visibility = ["//visibility:public"],
+    deps = [
+        ":vector",
+        ":string",
+    ],
 )
 
 cc_library(
@@ -118,4 +122,11 @@ cc_library(
     hdrs = ["rpc_crawler.h"],
     visibility = ["//visibility:public"],
     deps = [":string", ":vector", ":rpc_common"],
+)
+
+cc_library(
+    name = "logger",
+    hdrs = ["logger.h"],
+    visibility = ["//visibility:public"],
+    deps = [":consts"],
 )

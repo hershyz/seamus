@@ -1,7 +1,24 @@
+// Crawler driver
+
+#include "bucket_manager.h"
 #include "crawler_listener.h"
+#include "crawler_worker.h"
 #include "domain_carousel.h"
-#include "parser.h"
+#include "../lib/logger.h"
 
 int main() {
-    return 0;
+    logger::info("Crawler started...");
+
+    // Initialize crawler components/modules
+    // Bucket manager
+    vector<string> bucket_files = get_frontier_bucket_files();
+    logger::info("Initialized %zu bucket files:", bucket_files.size());
+    for (size_t i = 0; i < bucket_files.size(); ++i) {
+        logger::info("  bucket[%zu] = %.*s", i, static_cast<int>(bucket_files[i].size()), bucket_files[i].data());
+    }
+    BucketManager bm(static_cast<vector<string>&&>(bucket_files));
+
+    // Domain carousel
+
+    // Crawler listener
 }

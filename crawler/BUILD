@@ -16,7 +16,7 @@ cc_library(
         "-lssl",
         "-lcrypto",
     ],
-    deps = ["//lib:consts", "//lib:vector", "//lib:deque", "//lib:string", "//lib:utils", "//lib:rpc_listener", "//lib:rpc_crawler"],
+    deps = ["//lib:consts", "//lib:vector", "//lib:deque", "//lib:string", "//lib:utils", "//lib:rpc_listener", "//lib:rpc_crawler", "//lib:logger"],
     visibility = ["//visibility:public"],
 )
 
