@@ -79,7 +79,10 @@ cc_library(
     name = "utils",
     hdrs = ["utils.h"],
     visibility = ["//visibility:public"],
-    deps = [":string"],
+    deps = [
+        ":string", 
+        ":consts"
+    ],
 )
 
 cc_library(

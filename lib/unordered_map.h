@@ -1,6 +1,8 @@
 #pragma once
 
 #include "vector.h"
+#include "utils.h"
+
 #include <cassert>
 #include <iostream>
 #include <iomanip>
@@ -252,7 +254,7 @@ public:
                         idx = (idx + 1) & (new_cap - 1); // linear probing
                         collision_counter++;
                     }
-                    new_slots[idx] = Slot<Key, Value>(i.key, i.value);
+                    new_slots[idx] = move(i);
                 }
             }
             map_capacity = new_cap;
@@ -284,7 +286,7 @@ public:
 
     class Iterator {
     private:
-        const unordered_map* map;
+        unordered_map* map;
         size_t index;
 
         void next_valid() {

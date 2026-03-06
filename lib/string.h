@@ -160,8 +160,7 @@ public:
 
     ~string() {
         if (!is_short()) {
-            size_t actual_allocation_size = size() + 1;
-            ::operator delete(state.l.data, actual_allocation_size);
+            ::operator delete(state.l.data);
         }
     }
 
