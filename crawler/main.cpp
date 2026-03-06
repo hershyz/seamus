@@ -19,6 +19,11 @@ int main() {
     BucketManager bm(static_cast<vector<string>&&>(bucket_files));
 
     // Domain carousel
+    DomainCarousel dc;
+    logger::info("Domain carousel initialized (%zu hash slots, max %zu per queue)", CRAWLER_CAROUSEL_SIZE, CRAWLER_MAX_QUEUE_SIZE);
 
     // Crawler listener
+    CrawlerListener cl(&bm, &dc);
+    cl.start();
+    logger::info("Crawler listener started on port %u with %zu threads", CRAWLER_LISTENER_PORT, CRAWLER_LISTENER_THREADS);
 }
