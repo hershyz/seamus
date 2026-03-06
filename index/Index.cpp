@@ -232,6 +232,12 @@ bool IndexChunk::add_page(const string &path) {
         perror("Expected title header missing.\n");
     }
 
+    // TODO: Protect this for parallelism, but have to discuss how we're distributing this
+    uint32_t doc = curr_doc_++;
+
+    // Start a counter for word locations
+    uint32_t loc = 0;
+
     // TODO: Read all words in title
     while(fgets(buff, sizeof(buff), fd)) {
 
