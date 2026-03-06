@@ -3,6 +3,7 @@
 #include <thread>
 #include <chrono>
 #include "../crawler/crawler_listener.h"
+#include "../crawler/domain_carousel.h"
 
 
 void test_crawler_listener_receives_batch() {
@@ -65,33 +66,37 @@ void test_crawler_listener_receives_batch() {
 }
 
 
-void test_crawler_listener_empty_batch() {
-    printf("---- test_crawler_listener_empty_batch ----\n");
+void test_push_target_fill_and_overflow() {
+    printf("---- test_push_target_fill_and_overflow ----\n");
 
-    vector<string> bucket_files;
-    for (size_t i = 0; i < PRIORITY_BUCKETS; i++) {
-        bucket_files.push_back(string("bucket_"));
-    }
-    BucketManager bm(static_cast<vector<string>&&>(bucket_files));
     DomainCarousel dc;
+    size_t expected_slot = DomainCarousel::hash_domain(string("overflow-test.com")) % CRAWLER_CAROUSEL_SIZE;
 
-    CrawlerListener cl(&bm, &dc);
-    cl.start();
-
-    // Send an empty batch
-    BatchCrawlTargetRequest batch;
-    string host("127.0.0.1");
-    assert(send_batch_crawl_target_request(host, CRAWLER_LISTENER_PORT, batch));
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-    // All buckets should be empty
-    for (size_t i = 0; i < PRIORITY_BUCKETS; i++) {
-        std::lock_guard<std::mutex> lock(dc.buckets[i].bucket_lock);
-        assert(dc.buckets[i].urls.size() == 0);
+    // Fill the slot to capacity
+    for (size_t i = 0; i < CRAWLER_MAX_QUEUE_SIZE; ++i) {
+        // Build a unique URL per iteration using a digit suffix
+        char url_buf[64];
+        snprintf(url_buf, sizeof(url_buf), "https://overflow-test.com/%zu", i);
+        bool ok = dc.push_target(CrawlTarget{string("overflow-test.com"), string(url_buf, strlen(url_buf)), 0, 0});
+        assert(ok);
     }
 
-    cl.stop();
+    // Verify all targets landed in the expected carousel slot
+    assert(dc.carousel[expected_slot].targets.size() == CRAWLER_MAX_QUEUE_SIZE);
+
+    // Verify other slots are empty (spot-check neighbors)
+    size_t prev = (expected_slot == 0) ? CRAWLER_CAROUSEL_SIZE - 1 : expected_slot - 1;
+    size_t next = (expected_slot + 1) % CRAWLER_CAROUSEL_SIZE;
+    assert(dc.carousel[prev].targets.size() == 0);
+    assert(dc.carousel[next].targets.size() == 0);
+
+    // One more push should fail — queue is full
+    bool overflow = dc.push_target(CrawlTarget{string("overflow-test.com"), string("https://overflow-test.com/extra"), 0, 0});
+    assert(!overflow);
+
+    // Size should still be at the max
+    assert(dc.carousel[expected_slot].targets.size() == CRAWLER_MAX_QUEUE_SIZE);
+
     printf("PASS\n");
 }
 
@@ -99,8 +104,7 @@ void test_crawler_listener_empty_batch() {
 int main() {
     printf("\n===== RUNNING CRAWLER TESTS =====\n\n");
     test_crawler_listener_receives_batch();
-    // Can't run both tests since they bind to the same port
-    // test_crawler_listener_empty_batch();
+    test_push_target_fill_and_overflow();
     printf("\n===== ALL CRAWLER TESTS PASSED =====\n");
     return 0;
 }
