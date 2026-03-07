@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 
 // This header defines an alpha sorted array of the HTML tags recognized
 // along with the desired action.  The list of possible names is taken from
@@ -40,8 +41,6 @@ enum class DesiredAction
 // If the name is found in the TagsRecognized table, return
 // the corresponding action.
 // If the name is not found, return OrdinaryText.
-
-DesiredAction LookupPossibleTag( const char *name, const char *nameEnd = nullptr );
 
 class HtmlTag
    {
@@ -215,3 +214,29 @@ const HtmlTag TagsRecognized[ ] =
 
 const size_t LongestTagLength = 10;
 const int NumberOfTags = sizeof( TagsRecognized )/sizeof( HtmlTag );
+
+
+// name points to beginning of the possible HTML tag name.
+// nameEnd points to one past last character.
+// Comparison is case-insensitive.
+// Use a binary search.
+// If the name is found in the TagsRecognized table, return
+// the corresponding action.
+// If the name is not found, return OrdinaryText.
+inline DesiredAction LookupPossibleTag( const char *name, const char *nameEnd ) {
+   size_t len = nameEnd - name;
+   size_t l = 0, r = NumberOfTags;
+
+   while (l < r) {
+      size_t m = l + (r - l) / 2;
+      int cmp = strncasecmp(TagsRecognized[m].Tag, name, len);
+      if (cmp < 0) l = m + 1;
+      else if (cmp > 0) r = m;
+      else {
+         if (strlen(TagsRecognized[m].Tag) == len) return TagsRecognized[m].Action;
+         r = m;
+      }
+   }
+
+   return DesiredAction::OrdinaryText;
+}
