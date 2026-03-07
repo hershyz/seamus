@@ -1,0 +1,29 @@
+How crawl should work:
+
+
+fd = <network call>
+filename = place we wanna write this stuff
+<class>buffer buf;
+
+while(ssize_t status = buf.read(fd) > 0):
+    HTMLParser(buf.begin()) h;
+    buf.write(filename) // Write what we got then clear buffer to re use 
+    addToURLStuff(h.urlStuff)
+
+if status is -1 we die (not really we just don't do the write (or maybe we do cuz
+we could write partially on a fail potentially))
+
+if status is 0 (we finished read of all HTML):
+    buf.write(filename) // Last write
+
+Nice we read in HTML page parsed it then wrote it to file
+
+if batch ready: send out urls to other machines' frontiers
+
+
+TODO solve split-on-buf-boundary issue if we choose read-write-flush-repeat pattern
+    TODO parser in this design needs a tiny bit of persistent state so maybe constructor not good...
+    also need urlstore potentially.... 
+
+
+TODO: modify parser to keep words in buffer instead of moving into a vector.
