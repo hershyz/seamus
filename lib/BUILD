@@ -72,6 +72,7 @@ cc_library(
     deps = [
         ":string",
         ":vector",
+        ":utils",
     ],
 )
 
