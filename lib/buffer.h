@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <stdexcept>
 
 #include <fcntl.h>
@@ -16,7 +17,9 @@ public:
     // Can change later - this is 32KB
     static constexpr uint32_t CAPACITY = 32 * 1024;
 
-    buffer() : size_(0), data_(new char[CAPACITY]) {}
+    buffer()
+        : size_(0)
+        , data_(new char[CAPACITY]) {}
 
     ~buffer() { delete[] data_; }
 
@@ -47,24 +50,46 @@ public:
     void clear() { size_ = 0; }
     void set_size(size_t n) { size_ = n; }
 
-    // Read up to CAPACITY bytes into the buffer. Returns read bytes on successful read,
-    // 0 on empty read, and -1 on error
+    // Read from fd, appending after any existing data. Returns bytes read
+    // on success, 0 on empty read, -1 on error.
     ssize_t read(int fd) {
-        ssize_t bytes_read = seamus_read(fd, data_, CAPACITY);
-        close(fd);
-        if (bytes_read <= 0) return bytes_read;
-        size_ = bytes_read;
+        ssize_t bytes_read = seamus_read(fd, data_ + size_, CAPACITY - size_);
+        if (bytes_read <= 0) {
+            return bytes_read;
+        }
+        size_ += bytes_read;
         return bytes_read;
     }
 
-    // Write contents to disk and reset buffer
-    void write_to_disk(const char *filepath) {
+    // Write first n bytes to disk, then shift the remainder to the front.
+    // NOT IN USE RIGHT NOW BUT COULD BE LATER
+    void write_to_disk(const char *filepath, size_t n) {
         int fd = open(filepath, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        if (fd == -1)
-            throw std::runtime_error("buffer::write_to_disk: failed to open file");
-        seamus_write(fd, data_, size_);
-        size_ = 0;
+        if (fd == -1) throw std::runtime_error("buffer::write_to_disk: failed to open file");
+        seamus_write(fd, data_, n);
         close(fd);
+
+        // Shift unconsumed remainder to front
+        if (n >= size_) {
+            size_ = 0;
+        } else {
+            size_t remaining = size_ - n;
+            memmove(data_, data_ + n, remaining);
+            size_ = remaining;
+        }
+    }
+
+
+    void shift_data(size_t n) {
+
+        // Shift unconsumed remainder to front
+        if (n >= size_) {
+            size_ = 0;
+        } else {
+            size_t remaining = size_ - n;
+            memmove(data_, data_ + n, remaining);
+            size_ = remaining;
+        }
     }
 
 private:

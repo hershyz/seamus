@@ -1,0 +1,5 @@
+#!/bin/bash
+
+g++ -std=c++17 benchmarker.cpp -o bench &&
+
+curl -s -L $1 | ./bench

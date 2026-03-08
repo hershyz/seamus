@@ -4,9 +4,9 @@ How crawl should work:
 fd = <network call>
 filename = place we wanna write this stuff
 <class>buffer buf;
-
+HTMLParser h;
 while(ssize_t status = buf.read(fd) > 0):
-    HTMLParser(buf.begin()) h;
+    h.parse()
     buf.write(filename) // Write what we got then clear buffer to re use 
     addToURLStuff(h.urlStuff)
 
@@ -20,10 +20,13 @@ Nice we read in HTML page parsed it then wrote it to file
 
 if batch ready: send out urls to other machines' frontiers
 
+TODO: In crawler, prediodically write to disk vector of works/title words (hopefully these should be combined later).
+Really, should change data structure to just be a buffer. 
 
-TODO solve split-on-buf-boundary issue if we choose read-write-flush-repeat pattern
-    TODO parser in this design needs a tiny bit of persistent state so maybe constructor not good...
-    also need urlstore potentially.... 
+TODO: Make an <allowed> map and modify parser to avoid parsing/using non-allowed characters. Ideally this is done efficiently, but
+it's not incredibly important that it is.
 
-
-TODO: modify parser to keep words in buffer instead of moving into a vector.
+Note: The reasoning behind having a max-size per crawler: Network calls will be the extremely dominant overhead. In order to
+maximize network call throughput, we should partition our available RAM to a static number of crawlers. If each crawler maximally
+uses the ram it's given most of the time (which should be the minimum amount of ram needed to not have a ridiculous number
+of disk writes that would significantly slow down crawling), we will be maximizing network calls.

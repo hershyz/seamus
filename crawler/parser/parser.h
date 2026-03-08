@@ -4,81 +4,26 @@
 #pragma once
 
 #include <cstring>
+
+#include "../../lib/buffer.h"
+// #include "../../lib/string.h"
+// #include "../../lib/vector.h"
+#include <string>
+#include <vector>
+
 #include "HtmlTags.h"
-#include "../../lib/string.h"
-#include "../../lib/vector.h"
 
-// This is a simple HTML parser class.  Given a text buffer containing
-// a presumed HTML page, the constructor will parse the text to create
-// lists of words, title words and outgoing links found on the page.  It
-// does not attempt to parse the entire the document structure.
-//
-// The strategy is to word-break at whitespace and HTML tags and discard
-// most HTML tags.  Three tags require discarding everything between
-// the opening and closing tag. Five tags require special processing.
-//
-// We will use the list of possible HTML element names found at
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element +
-// !-- (comment), !DOCTYPE and svg, stored as a table in HtmlTags.h.
+using std::string;
+using std::vector;
 
-// Here are the rules for recognizing HTML tags.
-//
-// 1. An HTML tag starts with either < if it's an opening tag or </ if it's
-//    a closing token.  If it starts with < and ends with /> it is both.
-//
-// 2. The name of the tag must follow the < or </ immediately.  There can't
-//    be any whitespace.
-//
-// 3. The name is terminated by whitespace, > or / and is case-insensitive.
-//    The exception is <!--, which starts a comment and is not required
-//    to be terminated.
-//
-// 4. If the name is terminated by whitepace, arbitrary text representing
-//    various arguments may follow, terminated by a > or />.
-//
-// 5. If the name isn't on the list we recognize, we assume it's just
-//    ordinary text.
-//
-// 6. Every token is taken as a word-break.
-//
-// 7. Most opening or closing tokens can simply be discarded.
-//
-// 8. <script>, <style>, and <svg> require discarding everything between the
-//    opening and closing tag.  Unmatched closing tags are discarded.
-//
-// 9. <!--, <title>, <a>, <base> and <embed> require special processing.
-//
-//      <!-- is the beginng of a comment.  Everything up to the ending -->
-//          is discarded.
-//
-//      <title> should cause all the words between the opening and closing
-//          tags to be added to the titleWords vector rather than the default
-//          words vector.  A closing </title> without an opening <title> is discarded.
-//
-//      <a> is expected to contain an href="...url..."> argument with the
-//          URL inside the double quotes that should be added to the list
-//          of links.  All the words in between the opening and closing tags
-//          should be collected as anchor text associated with the link
-//          in addition to being added to the words or titleWords vector,
-//          as appropriate.  A closing </a> without an opening <a> is
-//          discarded.
-//
-//     <base> may contain an href="...url..." parameter.  If present, it should
-//          be captured as the base variable.  Only the first is recognized; any
-//          others are discarded.
-//
-//     <embed> may contain a src="...url..." parameter.  If present, it should be
-//          added to the links with no anchor text.
 
-// David Note: It seems that if there is no closing tag, we are to treat the next opening
-// tag of the same type as a closing tag. (Based on a comment Hamilton made in lecture &
-// the examples).
-
+// Store URL + anchor text
 struct Link {
     string URL;
     vector<string> anchorText;
 
-    Link(string url) : URL(static_cast<string&&>(url)) {}
+    Link(string url)
+        : URL(static_cast<string &&>(url)) {}
 };
 
 
@@ -88,25 +33,181 @@ public:
     vector<Link> links;
     string base;
 
-    // The constructor is given a buffer and length containing
-    // presumed HTML.  It will parse the buffer, stripping out
-    // all the HTML tags and producing the list of words in body,
-    // words in title, and links found on the page.
+    // TODO: when writing crawling function, need to periodically diskwrite when these limits are exceeded.
+    // This means HtmlParser class will essentially have a guaranteed and predictable max memory use,
+    // which means operating many crawlers at a time will be much easier and likely more efficient.
+    static constexpr uint32_t MAX_WORD_VECSIZE = 32 * 1024;
+    static constexpr uint32_t MAX_TITLE_VECSIZE = 32 * 1024;
+    static constexpr uint32_t MAX_LINK_VECSIZE = 32 * 1024;
 
-    HtmlParser(const char *buffer, size_t length) : base("") {
-        const char* end = buffer + length;
-        const char* p = buffer;
-        const char* word_start = p;
+    HtmlParser()
+        : base("") {}
 
-        bool in_a = false, in_title = false, base_found = false;
+    // Potentially called in sequence on different buffers as HTML page may be larger than one buffer.
+    // Called once per chunk
+    size_t parse(buffer &buf) {
+        const char *data = buf.data();         // Front of buffer
+        const char *end = data + buf.size();   // End of buffer
+        // Where parse_chunk should start (may be larger than data,
+        // because the front of the buffer may have remnants from last chunk)
+        const char *parse_start = data;
+
+        // If continuing a comment from previous chunk, scan for -->
+        if (in_comment_) {
+            const char *p = data;
+            while (p + 2 < end) {
+                if (*p == '-' && *(p + 1) == '-' && *(p + 2) == '>') {
+                    in_comment_ = false;
+
+                    // Tell parse_chunk to ignore the comment
+                    parse_start = p + 3;
+                    break;
+                }
+                p++;
+            }
+            if (in_comment_) {
+                // Entire chunk is still inside comment. Consume everything
+                // except last 4 bytes, in case --> is cut off again.
+                return (buf.size() >= 4) ? buf.size() - 4 : 0;
+            }
+        }
+
+        // If continuing a discard section from previous chunk, scan for </tag>
+        if (in_discard_) {
+            const char *p = data;
+            while (p < end) {
+                if (*p == '<' && p + 1 < end && *(p + 1) == '/') {
+                    const char *close_name = p + 2;
+                    const char *close_p = close_name;
+                    while (close_p < end && *close_p != '>' && !isspace(*close_p)) close_p++;
+                    if (close_p < end && (size_t) (close_p - close_name) == discard_tag_len_
+                        && !strncasecmp(close_name, discard_tag_, discard_tag_len_)) {
+                        // Found matching close tag, skip past >
+                        while (close_p < end && *close_p != '>') close_p++;
+                        in_discard_ = false;
+
+                        // Tell parse_chunk to ignore the discard area
+                        parse_start = (close_p < end) ? close_p + 1 : end;
+                        break;
+                    }
+                }
+                p++;
+            }
+            if (in_discard_) {
+                // Entire chunk is still inside discard section. Consume everything
+                // except last 12 bytes (max closing tag: </script> is 9 bytes).
+                return (buf.size() >= 12) ? buf.size() - 12 : 0;
+            }
+        }
+
+        // Scan backwards until finding the first '>' to avoid splitting a tag, which kinda screws us
+        const char *safe_end = end;
+        {
+            const char *scan = end;
+            while (scan > parse_start && *(scan - 1) != '>') scan--;
+            if (scan > parse_start) safe_end = scan;
+            // If no '>' found after parse_start, parse everything (plain text chunk)
+        }
+
+        // Parse region after fixing any split-buffer issues
+        parse_chunk(parse_start, safe_end - parse_start);
+
+        // Return how many bytes from the front of the buffer were consumed
+        return safe_end - data;
+
+        /* Example
+
+            buffer: [ello World! --> Hello World! </div> <d]
+
+            1. parser sees we're in comment (fromt last buffer), so it goes until finding 
+            '-->'. It sets parse_start to the ' ' after '-->'. That way the parse_chunk
+            ignore the residual comment.
+
+            2. parse finds safe_end at the '>' in </div>. This 'reserves' the
+            <d at the end of the buffer which will be saved and processed in the next parse.
+            This way, we don't try to parse the <d which would be catastrophic as the
+            next buffer would start with 'iv/>'.
+
+            3. parse calls parse_chunk(parse_start, safe_end - parse_start), which
+            ends up passing ' Hello World! </div> '. This is safe to parse.
+
+
+        */
+    }
+
+    // Call after the last read() returns 0. Parses whatever remains in the buffer.
+    void finish(buffer &buf) {
+        if (buf.size() > 0) {
+            const char *data = buf.data();
+            const char *end = data + buf.size();
+            const char *parse_start = data;
+
+            // Handle any leftover comment/discard state
+            if (in_comment_) {
+                // No more data coming, just discard the rest
+                in_comment_ = false;
+                buf.clear();
+                return;
+            }
+            if (in_discard_) {
+                const char *p = data;
+                while (p < end) {
+                    if (*p == '<' && p + 1 < end && *(p + 1) == '/') {
+                        const char *close_name = p + 2;
+                        const char *close_p = close_name;
+                        while (close_p < end && *close_p != '>' && !isspace(*close_p)) close_p++;
+                        if (close_p < end && (size_t) (close_p - close_name) == discard_tag_len_
+                            && !strncasecmp(close_name, discard_tag_, discard_tag_len_)) {
+                            while (close_p < end && *close_p != '>') close_p++;
+                            in_discard_ = false;
+                            parse_start = (close_p < end) ? close_p + 1 : end;
+                            break;
+                        }
+                    }
+                    p++;
+                }
+                if (in_discard_) {
+                    in_discard_ = false;
+                    buf.clear();
+                    return;
+                }
+            }
+
+            // Parse everything remaining — no safe_end needed, this is the last chunk
+            parse_chunk(parse_start, end - parse_start);
+            buf.clear();
+        }
+    }
+
+private:
+    // Persistent state
+    bool in_a_ = false;
+    bool in_title_ = false;
+    bool base_found_ = false;
+
+    // Needed for multi-chunk comments and discard sections
+    bool in_comment_ = false;
+    bool in_discard_ = false;
+    char discard_tag_[16] = {};
+    size_t discard_tag_len_ = 0;
+
+    // Core parsing logic, man i'm glad David basically already did this
+    void parse_chunk(const char *buffer, size_t length) {
+        const char *end = buffer + length;
+        const char *p = buffer;
+        const char *word_start = p;
+
+        // Parse <length> bytes starting at <buffer>
         while (p < end) {
             if (isspace(*p)) {
                 if (p > word_start) {
                     size_t word_len = p - word_start;
-                    if (in_a) links.back().anchorText.push_back(string(word_start, word_len));
+                    if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
 
-                    if (in_title) titleWords.push_back(string(word_start, word_len));
-                    else words.push_back(string(word_start, word_len));
+                    if (in_title_)
+                        titleWords.push_back(string(word_start, word_len));
+                    else
+                        words.push_back(string(word_start, word_len));
                     word_start = ++p;
                 } else {
                     p++;
@@ -116,9 +217,9 @@ public:
 
             // Handle potential start of tag
             else if (*p == '<') {
-                const char* tag_start = ++p;
+                const char *tag_start = ++p;
                 bool is_closing = false;
-                if (*p == '/') {
+                if (p < end && *p == '/') {
                     // Closing tag
                     is_closing = true;
                     tag_start = ++p;
@@ -127,8 +228,8 @@ public:
                 // Continue until end of tag name
                 while (p < end && !(isspace(*p) || *p == '/' || *p == '>')) p++;
 
-                // If the tag starts with '!', see if it's a comment -- otherwise use length until whitespace
-                if (!strncmp(tag_start, "!--", 3)) p = tag_start + 3;
+                // If the tag starts with '!', see if it's a comment, otherwise use length until whitespace
+                if (tag_start + 3 <= end && !strncmp(tag_start, "!--", 3)) p = tag_start + 3;
                 size_t len = p - tag_start;
 
                 // Lookup tag name
@@ -138,126 +239,142 @@ public:
                     // If the tag was immediately after a word, add it to our list
                     if ((!is_closing && word_start < tag_start - 1) || word_start < tag_start - 2) {
                         size_t word_len = is_closing ? (tag_start - 2) - word_start : (tag_start - 1) - word_start;
-                        if (in_a) links.back().anchorText.push_back(string(word_start, word_len));
+                        if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
 
-                        if (in_title) titleWords.push_back(string(word_start, word_len));
-                        else words.push_back(string(word_start, word_len));
+                        if (in_title_)
+                            titleWords.push_back(string(word_start, word_len));
+                        else
+                            words.push_back(string(word_start, word_len));
                     }
                 }
 
                 switch (act) {
-                    case DesiredAction::OrdinaryText:
-                        // Treat as normal text -- just advance pointer
-                        if (isspace(*p)) {
-                            size_t word_len = p - word_start;
-                            if (in_a) links.back().anchorText.push_back(string(word_start, word_len));
+                case DesiredAction::OrdinaryText:
+                    if (p < end && isspace(*p)) {
+                        size_t word_len = p - word_start;
+                        if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
 
-                            if (in_title) titleWords.push_back(string(word_start, word_len));
-                            else words.push_back(string(word_start, word_len));
-                            word_start = ++p;
-                        } else p++;
-                        break;
-                    case DesiredAction::Title:
-                        // Toggle title state accordingly
-                        in_title = !is_closing;
+                        if (in_title_)
+                            titleWords.push_back(string(word_start, word_len));
+                        else
+                            words.push_back(string(word_start, word_len));
+                        word_start = ++p;
+                    } else if (p < end)
+                        p++;
+                    break;
+                case DesiredAction::Title:
+                    // Toggle title state accordingly
+                    in_title_ = !is_closing;
+                    while (p < end && *p != '>') p++;
+                    if (p < end) word_start = ++p;
+                    break;
+                case DesiredAction::Comment:
+                    // Scan for closing -->
+                    while (p + 2 < end && !(*p == '-' && *(p + 1) == '-' && *(p + 2) == '>')) p++;
+                    if (p + 2 >= end) {
+                        // Comment spans into next chunk
+                        in_comment_ = true;
+                        return;
+                    }
+                    p += 3;
+                    word_start = p;
+                    break;
+                case DesiredAction::Discard:
+                    // Skip the tag and advance pointer
+                    while (p < end && *p != '>') p++;
+                    if (p < end) word_start = ++p;
+                    break;
+                case DesiredAction::DiscardSection:
+                    // Advance until we hit a closing tag or the end, ignoring everything in between
+                    // Loop guard checks whether it was an unmatched closing tag, in which case we just skip
+                    while (!is_closing) {
+                        while (p + 1 < end && !(*p == '<' && *(p + 1) == '/')) p++;
+                        if (p + 1 >= end) {
+                            // Discard section spans into next chunk
+                            in_discard_ = true;
+                            discard_tag_len_ = (len < sizeof(discard_tag_)) ? len : sizeof(discard_tag_) - 1;
+                            memcpy(discard_tag_, tag_start, discard_tag_len_);
+                            return;
+                        }
+
+                        // Once we've found closing tag, see if it matches
+                        p += 2;
+                        const char *close_start = p;
+                        while (p < end && !(isspace(*p) || *p == '>')) p++;
+
+                        // If closing tag matches the opening tag, we've exited the discard region
+                        if (!strncasecmp(close_start, tag_start, len)) break;
+
+                        // If closing tag doesn't match, keep looking for a closing tag
+                    }
+
+                    if (!in_discard_) {
                         while (p < end && *p != '>') p++;
-                        word_start = ++p;
-                        break;
-                    case DesiredAction::Comment:
-                        // Advance until we hit a closing tag or the end, ignoring everything in between
-                        while (true) {
-                            while (p < end && !(*p == '-' && *(p + 1) == '-' && *(p + 2) == '>')) p++;
-
-                            // Found closing tag, advance pointer past it
-                            // (In theory this could advance the pointer past the end, but if so we'll exit the outer while, so nbd)
-                            p += 3;
-                            word_start = p;
-                            break;
-                        }
-                        break;
-                    case DesiredAction::Discard:
-                        // Skip the tag and advance pointer
+                        if (p < end) word_start = ++p;
+                    }
+                    break;
+                case DesiredAction::Anchor:
+                    if (is_closing) {
+                        in_a_ = false;
                         while (p < end && *p != '>') p++;
-                        word_start = ++p;
-                        break;
-                    case DesiredAction::DiscardSection:
-                        // Advance until we hit a closing tag or the end, ignoring everything in between
-                        // Loop guard checks whether it was an unmatched closing tag, in which case we just skip
-                        while (!is_closing) {
-                            while (p < end && !(*p == '<' && *(p + 1) == '/')) p++;
-                            if (p == end) break;
-
-                            // Once we've found closing tag, see if it matches
-                            p += 2;
-                            const char* close_start = p;
-                            while (p < end && !(isspace(*p) || *p == '>')) p++;
-
-                            // If closing tag matches the opening tag, we've exited the discard region
-                            if (!strncasecmp(close_start, tag_start, len)) break;
-
-                            // If closing tag doesn't match, keep looking for a closing tag
-                        }
-
-                        word_start = ++p;
-                        break;
-                    case DesiredAction::Anchor:
-                        if (is_closing) {
-                            in_a = false;
-                            while (p < end && *p != '>') p++;
-                        } else {
-                            while (p < end && *p != '>') {
-                                if (!strncasecmp(p, "href=\"", 6) && isspace(*(p - 1))) {
-                                    const char* a_start = (p += 6);
-                                    while (p < end && *p != '"') p++;
-
-                                    if (p != end && p > a_start) {
-                                        links.push_back(Link(string(a_start, p - a_start)));
-                                        in_a = true;
-                                    }
-                                } else p++;
-                            }
-                        }
-
-                        word_start = ++p;
-                        break;
-                    case DesiredAction::Base:
-                        // If already found base link, discard this section
-                        if (base_found) {
-                            while (p < end && *p != '>') p++;
-                        } else {
-                            while (p < end && *p != '>') {
-                                // Search for href and capture the link
-                                if (!strncasecmp(p, "href=\"", 6)) {
-                                    const char* base_start = (p += 6);
-                                    while (p < end && *p != '"') p++;
-
-                                    base = string(base_start, p - base_start);
-                                    base_found = true;
-                                } else p++;
-                            }
-                        }
-
-                        word_start = ++p;
-                        break;
-                    case DesiredAction::Embed:
+                    } else {
                         while (p < end && *p != '>') {
-                            // Search for src and capture link
-                            if (!strncasecmp(p, "src=\"", 5)) {
-                                const char* embed_start = (p += 5);
+                            if (!strncasecmp(p, "href=\"", 6) && isspace(*(p - 1))) {
+                                const char *a_start = (p += 6);
                                 while (p < end && *p != '"') p++;
 
-                                links.push_back(Link(string(embed_start, p - embed_start)));
-                            } else p++;
+                                if (p != end && p > a_start) {
+                                    links.push_back(Link(string(a_start, p - a_start)));
+                                    in_a_ = true;
+                                }
+                            } else
+                                p++;
                         }
+                    }
 
-                        word_start = ++p;
-                        break;
+                    if (p < end) word_start = ++p;
+                    break;
+                case DesiredAction::Base:
+                    // If already found base link, discard this section
+                    if (base_found_) {
+                        while (p < end && *p != '>') p++;
+                    } else {
+                        while (p < end && *p != '>') {
+                            // Search for href and capture the link
+                            if (!strncasecmp(p, "href=\"", 6)) {
+                                const char *base_start = (p += 6);
+                                while (p < end && *p != '"') p++;
+
+                                base = string(base_start, p - base_start);
+                                base_found_ = true;
+                            } else
+                                p++;
+                        }
+                    }
+
+                    if (p < end) word_start = ++p;
+                    break;
+                case DesiredAction::Embed:
+                    while (p < end && *p != '>') {
+                        // Search for src and capture link
+                        if (!strncasecmp(p, "src=\"", 5)) {
+                            const char *embed_start = (p += 5);
+                            while (p < end && *p != '"') p++;
+
+                            links.push_back(Link(string(embed_start, p - embed_start)));
+                        } else
+                            p++;
+                    }
+
+                    if (p < end) word_start = ++p;
+                    break;
                 }
 
             }
 
             // If normal character, just increment p
-            else p++;
+            else
+                p++;
         }
     }
 };
