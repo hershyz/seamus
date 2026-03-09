@@ -49,7 +49,6 @@ struct DefaultHash {
     }
 };
 
-#ifdef SEAMUS_STRING_H
 template<>
 struct DefaultHash<string> {
     size_t operator()(const string& s) const {
@@ -61,7 +60,7 @@ struct DefaultHash<string> {
         return h;
     }
 };
-#endif
+
 
 template<typename T>
 struct DefaultEq {
@@ -170,6 +169,18 @@ private:
     }
 
 public:
+    // an off-by-1 getter method that exists for const class methods/read-only access to map
+    // todo(charlie): might migrate this into a constIterator class later
+    const Value* get(const Key& key) const {
+        const size_t index = find_index(key);
+
+        if(states[index] == State::FILLED) {
+            return &values[index];
+        }
+
+        return nullptr;
+    }
+
     // INITIAL SIZE NEEDS TO BE A POWER OF 2!!!
     unordered_map(size_t capacity = 2048, double loading_factor = 0.65)
             : map_capacity((assert(valid_capacity(capacity)), capacity)), loading_factor(loading_factor) {
@@ -229,13 +240,14 @@ public:
         const size_t index = find_index(key);
         State state = states[index];
 
-        if(state == State::EMPTY) {
+        if(state == State::EMPTY || state == State::DELETED) {
             states[index] = State::FILLED;
             new (keys + index) Key(key);
             new (values + index) Value{};
             uniqueKeys++;
             return values[index];
         }
+
         return values[index];
     }
 
