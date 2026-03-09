@@ -5,11 +5,12 @@
 
 #include <cstring>
 
-#include "../../lib/buffer.h"
+#include "word_array.h"
 // #include "../../lib/string.h"
 // #include "../../lib/vector.h"
 #include <string>
 #include <vector>
+#include "../../lib/buffer.h"
 
 #include "HtmlTags.h"
 
@@ -29,23 +30,75 @@ struct Link {
 
 class HtmlParser {
 public:
-    vector<string> words, titleWords;
+    static constexpr uint32_t MAX_LINK_VECSIZE = 32 * 1024;
+
+    int in_fd_;
+    buffer buf;
+    word_array words;
     vector<Link> links;
     string base;
 
-    // TODO: when writing crawling function, need to periodically diskwrite when these limits are exceeded.
-    // This means HtmlParser class will essentially have a guaranteed and predictable max memory use,
-    // which means operating many crawlers at a time will be much easier and likely more efficient.
-    static constexpr uint32_t MAX_WORD_VECSIZE = 32 * 1024;
-    static constexpr uint32_t MAX_TITLE_VECSIZE = 32 * 1024;
-    static constexpr uint32_t MAX_LINK_VECSIZE = 32 * 1024;
+    HtmlParser(int in_fd, int out_fd)
+        : in_fd_(in_fd), words(out_fd) {}
 
-    HtmlParser()
-        : base("") {}
+    // Reads a chunk from the input fd, parses it, and shifts unconsumed bytes.
+    // Returns bytes read, 0 on EOF, -1 on error.
+    ssize_t read_and_parse() {
+        ssize_t status = buf.read(in_fd_);
+        if (status <= 0) return status;
 
-    // Potentially called in sequence on different buffers as HTML page may be larger than one buffer.
-    // Called once per chunk
-    size_t parse(buffer &buf) {
+        size_t consumed = parse_buf();
+        buf.shift_data(consumed);
+        return status;
+    }
+
+    // Call after read_and_parse() returns 0. Parses remaining bytes and flushes words.
+    void finish() {
+        if (buf.size() > 0) {
+            const char *data = buf.data();
+            const char *end = data + buf.size();
+            const char *parse_start = data;
+
+            if (in_comment_) {
+                in_comment_ = false;
+                buf.clear();
+                words.flush();
+                return;
+            }
+            if (in_discard_) {
+                const char *p = data;
+                while (p < end) {
+                    if (*p == '<' && p + 1 < end && *(p + 1) == '/') {
+                        const char *close_name = p + 2;
+                        const char *close_p = close_name;
+                        while (close_p < end && *close_p != '>' && !isspace(*close_p)) close_p++;
+                        if (close_p < end && (size_t) (close_p - close_name) == discard_tag_len_
+                            && !strncasecmp(close_name, discard_tag_, discard_tag_len_)) {
+                            while (close_p < end && *close_p != '>') close_p++;
+                            in_discard_ = false;
+                            parse_start = (close_p < end) ? close_p + 1 : end;
+                            break;
+                        }
+                    }
+                    p++;
+                }
+                if (in_discard_) {
+                    in_discard_ = false;
+                    buf.clear();
+                    words.flush();
+                    return;
+                }
+            }
+
+            parse_chunk(parse_start, end - parse_start);
+            buf.clear();
+        }
+        words.flush();
+    }
+
+private:
+    // Internal parse that operates on the current buffer contents
+    size_t parse_buf() {
         const char *data = buf.data();         // Front of buffer
         const char *end = data + buf.size();   // End of buffer
         // Where parse_chunk should start (may be larger than data,
@@ -119,7 +172,7 @@ public:
 
             buffer: [ello World! --> Hello World! </div> <d]
 
-            1. parser sees we're in comment (fromt last buffer), so it goes until finding 
+            1. parser sees we're in comment (fromt last buffer), so it goes until finding
             '-->'. It sets parse_start to the ' ' after '-->'. That way the parse_chunk
             ignore the residual comment.
 
@@ -135,51 +188,6 @@ public:
         */
     }
 
-    // Call after the last read() returns 0. Parses whatever remains in the buffer.
-    void finish(buffer &buf) {
-        if (buf.size() > 0) {
-            const char *data = buf.data();
-            const char *end = data + buf.size();
-            const char *parse_start = data;
-
-            // Handle any leftover comment/discard state
-            if (in_comment_) {
-                // No more data coming, just discard the rest
-                in_comment_ = false;
-                buf.clear();
-                return;
-            }
-            if (in_discard_) {
-                const char *p = data;
-                while (p < end) {
-                    if (*p == '<' && p + 1 < end && *(p + 1) == '/') {
-                        const char *close_name = p + 2;
-                        const char *close_p = close_name;
-                        while (close_p < end && *close_p != '>' && !isspace(*close_p)) close_p++;
-                        if (close_p < end && (size_t) (close_p - close_name) == discard_tag_len_
-                            && !strncasecmp(close_name, discard_tag_, discard_tag_len_)) {
-                            while (close_p < end && *close_p != '>') close_p++;
-                            in_discard_ = false;
-                            parse_start = (close_p < end) ? close_p + 1 : end;
-                            break;
-                        }
-                    }
-                    p++;
-                }
-                if (in_discard_) {
-                    in_discard_ = false;
-                    buf.clear();
-                    return;
-                }
-            }
-
-            // Parse everything remaining — no safe_end needed, this is the last chunk
-            parse_chunk(parse_start, end - parse_start);
-            buf.clear();
-        }
-    }
-
-private:
     // Persistent state
     bool in_a_ = false;
     bool in_title_ = false;
@@ -204,10 +212,7 @@ private:
                     size_t word_len = p - word_start;
                     if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
 
-                    if (in_title_)
-                        titleWords.push_back(string(word_start, word_len));
-                    else
-                        words.push_back(string(word_start, word_len));
+                    words.push_back(word_start, word_len);
                     word_start = ++p;
                 } else {
                     p++;
@@ -241,10 +246,7 @@ private:
                         size_t word_len = is_closing ? (tag_start - 2) - word_start : (tag_start - 1) - word_start;
                         if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
 
-                        if (in_title_)
-                            titleWords.push_back(string(word_start, word_len));
-                        else
-                            words.push_back(string(word_start, word_len));
+                        words.push_back(word_start, word_len);
                     }
                 }
 
@@ -254,10 +256,8 @@ private:
                         size_t word_len = p - word_start;
                         if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
 
-                        if (in_title_)
-                            titleWords.push_back(string(word_start, word_len));
-                        else
-                            words.push_back(string(word_start, word_len));
+
+                        words.push_back(word_start, word_len);
                         word_start = ++p;
                     } else if (p < end)
                         p++;
@@ -265,6 +265,12 @@ private:
                 case DesiredAction::Title:
                     // Toggle title state accordingly
                     in_title_ = !is_closing;
+                    if (in_title_) {
+                        words.push_back("<title>", 7);
+                    } else {
+                        words.push_back("<\\title>", 8);
+                    }
+
                     while (p < end && *p != '>') p++;
                     if (p < end) word_start = ++p;
                     break;
