@@ -48,7 +48,6 @@ public:
     const char *end() const { return data_ + size_; }
 
     void clear() { size_ = 0; }
-    void set_size(size_t n) { size_ = n; }
 
     // Read from fd, appending after any existing data. Returns bytes read
     // on success, 0 on empty read, -1 on error.
@@ -59,24 +58,6 @@ public:
         }
         size_ += bytes_read;
         return bytes_read;
-    }
-
-    // Write first n bytes to disk, then shift the remainder to the front.
-    // NOT IN USE RIGHT NOW BUT COULD BE LATER
-    void write_to_disk(const char *filepath, size_t n) {
-        int fd = open(filepath, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        if (fd == -1) throw std::runtime_error("buffer::write_to_disk: failed to open file");
-        seamus_write(fd, data_, n);
-        close(fd);
-
-        // Shift unconsumed remainder to front
-        if (n >= size_) {
-            size_ = 0;
-        } else {
-            size_t remaining = size_ - n;
-            memmove(data_, data_ + n, remaining);
-            size_ = remaining;
-        }
     }
 
 
@@ -91,6 +72,7 @@ public:
             size_ = remaining;
         }
     }
+
 
 private:
     size_t size_;

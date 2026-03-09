@@ -10,8 +10,8 @@
 // #include "../../lib/vector.h"
 #include <string>
 #include <vector>
-#include "../../lib/buffer.h"
 
+#include "../../lib/buffer.h"
 #include "HtmlTags.h"
 
 using std::string;
@@ -31,6 +31,7 @@ struct Link {
 class HtmlParser {
 public:
     static constexpr uint32_t MAX_LINK_VECSIZE = 32 * 1024;
+    static constexpr int MAX_CONSECUTIVE_NON_ALNUM = 5;
 
     int in_fd_;
     buffer buf;
@@ -39,11 +40,17 @@ public:
     string base;
 
     HtmlParser(int in_fd, int out_fd)
-        : in_fd_(in_fd), words(out_fd) {}
+        : in_fd_(in_fd)
+        , words(out_fd) {}
 
-    // Reads a chunk from the input fd, parses it, and shifts unconsumed bytes.
-    // Returns bytes read, 0 on EOF, -1 on error.
+    bool killed() const { return killed_; }
+
+    // 1. Read into buffer
+    // 2. Parse buffer
+    // 3. Move anything un-parsed to the front of the buffer
+    // General use - call in a loop until processing full page
     ssize_t read_and_parse() {
+        if (killed_) return 0;
         ssize_t status = buf.read(in_fd_);
         if (status <= 0) return status;
 
@@ -55,42 +62,7 @@ public:
     // Call after read_and_parse() returns 0. Parses remaining bytes and flushes words.
     void finish() {
         if (buf.size() > 0) {
-            const char *data = buf.data();
-            const char *end = data + buf.size();
-            const char *parse_start = data;
-
-            if (in_comment_) {
-                in_comment_ = false;
-                buf.clear();
-                words.flush();
-                return;
-            }
-            if (in_discard_) {
-                const char *p = data;
-                while (p < end) {
-                    if (*p == '<' && p + 1 < end && *(p + 1) == '/') {
-                        const char *close_name = p + 2;
-                        const char *close_p = close_name;
-                        while (close_p < end && *close_p != '>' && !isspace(*close_p)) close_p++;
-                        if (close_p < end && (size_t) (close_p - close_name) == discard_tag_len_
-                            && !strncasecmp(close_name, discard_tag_, discard_tag_len_)) {
-                            while (close_p < end && *close_p != '>') close_p++;
-                            in_discard_ = false;
-                            parse_start = (close_p < end) ? close_p + 1 : end;
-                            break;
-                        }
-                    }
-                    p++;
-                }
-                if (in_discard_) {
-                    in_discard_ = false;
-                    buf.clear();
-                    words.flush();
-                    return;
-                }
-            }
-
-            parse_chunk(parse_start, end - parse_start);
+            parse_buf();
             buf.clear();
         }
         words.flush();
@@ -126,6 +98,7 @@ private:
         }
 
         // If continuing a discard section from previous chunk, scan for </tag>
+        // Works pretty similarly to the in_comment_ logic.
         if (in_discard_) {
             const char *p = data;
             while (p < end) {
@@ -146,14 +119,15 @@ private:
                 }
                 p++;
             }
+            // Entire chunk should be discarded. Discard everything
+            // except last 12 bytes (max closing tag: </script> is 9 bytes).
             if (in_discard_) {
-                // Entire chunk is still inside discard section. Consume everything
-                // except last 12 bytes (max closing tag: </script> is 9 bytes).
                 return (buf.size() >= 12) ? buf.size() - 12 : 0;
             }
         }
 
-        // Scan backwards until finding the first '>' to avoid splitting a tag, which kinda screws us
+        // Scan backwards until finding the first '>' to avoid splitting a tag, which would kinda screw us.
+        // This also implicitly avoids splitting a word, which is nice.
         const char *safe_end = end;
         {
             const char *scan = end;
@@ -168,13 +142,13 @@ private:
         // Return how many bytes from the front of the buffer were consumed
         return safe_end - data;
 
-        /* Example
+        /* Example to show why this stuff is necessary:
 
             buffer: [ello World! --> Hello World! </div> <d]
 
-            1. parser sees we're in comment (fromt last buffer), so it goes until finding
+            1. parser sees we're in comment (from prev chunk), so it goes until finding
             '-->'. It sets parse_start to the ' ' after '-->'. That way the parse_chunk
-            ignore the residual comment.
+            call ignores the residual comment.
 
             2. parse finds safe_end at the '>' in </div>. This 'reserves' the
             <d at the end of the buffer which will be saved and processed in the next parse.
@@ -189,17 +163,31 @@ private:
     }
 
     // Persistent state
-    bool in_a_ = false;
-    bool in_title_ = false;
-    bool base_found_ = false;
+    bool in_a_ = false;         // in <a>
+    bool in_title_ = false;     // in <title>
+    bool base_found_ = false;   // found base link
+
+    // set to true if found MAX_CONSECUTIVE_NON_ALNUM non-alphanumeric characters in a row. Abort mission under the
+    // assumption the page is not english or is at minimum low-quality junk
+    bool killed_ = false;
+    int non_alnum_run_ = 0;   // Flag to track how many non-alnums we have seen in a row
 
     // Needed for multi-chunk comments and discard sections
     bool in_comment_ = false;
     bool in_discard_ = false;
+
+    // Store tag we are looking for from old buffer so new buffer has the right context
+    // Looks problematic in the case of nesting, but this is how it's done normally.
     char discard_tag_[16] = {};
     size_t discard_tag_len_ = 0;
 
-    // Core parsing logic, man i'm glad David basically already did this
+    // Characters we want to break words on
+    static bool is_word_break_char(char c) {
+        return isspace(c) || c == ',' || c == '.' || c == ':' || c == ';' || c == '!' || c == '?' || c == '('
+            || c == ')' || c == '"' || c == '[' || c == ']' || c == '{' || c == '}' || c == '-';
+    }
+
+    // Core parsing logic, man i'm glad David did most of this
     void parse_chunk(const char *buffer, size_t length) {
         const char *end = buffer + length;
         const char *p = buffer;
@@ -207,14 +195,14 @@ private:
 
         // Parse <length> bytes starting at <buffer>
         while (p < end) {
-            if (isspace(*p)) {
+            if (is_word_break_char(*p)) {
+                // Write back word if relevant
                 if (p > word_start) {
                     size_t word_len = p - word_start;
                     if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
-
                     words.push_back(word_start, word_len);
                     word_start = ++p;
-                } else {
+                } else {   // Not tracking a word, just continue
                     p++;
                     word_start++;
                 }
@@ -224,8 +212,7 @@ private:
             else if (*p == '<') {
                 const char *tag_start = ++p;
                 bool is_closing = false;
-                if (p < end && *p == '/') {
-                    // Closing tag
+                if (p < end && *p == '/') {   // Closing tag
                     is_closing = true;
                     tag_start = ++p;
                 }
@@ -237,7 +224,7 @@ private:
                 if (tag_start + 3 <= end && !strncmp(tag_start, "!--", 3)) p = tag_start + 3;
                 size_t len = p - tag_start;
 
-                // Lookup tag name
+                // Look up tag name
                 DesiredAction act = LookupPossibleTag(tag_start, tag_start + len);
 
                 if (act != DesiredAction::OrdinaryText) {
@@ -252,7 +239,7 @@ private:
 
                 switch (act) {
                 case DesiredAction::OrdinaryText:
-                    if (p < end && isspace(*p)) {
+                    if (p < end && is_word_break_char(*p)) {
                         size_t word_len = p - word_start;
                         if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
 
@@ -378,9 +365,76 @@ private:
 
             }
 
-            // If normal character, just increment p
-            else
+            // Handle HTML entities like &nbsp; &amp;, treat as word boundary, or discard
+            else if (*p == '&') {
+                // Check if it's an apostrophe, in which case we don't want to treat as space
+                const char *entity_start = p + 1;
+                const char *entity_end = entity_start;
+                while (entity_end < end && *entity_end != ';' && *entity_end != '<' && !isspace(*entity_end))
+                    entity_end++;
+                size_t elen = entity_end - entity_start;
+                bool is_apostrophe = (elen == 5 && !strncmp(entity_start, "rsquo", 5))
+                            || (elen == 4 && !strncmp(entity_start, "apos", 4));
+
+                if (is_apostrophe) {
+                    // Push back without adding a delimiter, so we get "cant", not "can t"
+                    if (p > word_start) {
+                        words.push_back_partial(word_start, p - word_start);
+                    }
+                } else {
+                    // Treat as word boundary, i.e. space
+                    if (p > word_start) {
+                        size_t word_len = p - word_start;
+                        if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
+                        words.push_back(word_start, word_len);
+                    }
+                }
+                // Skip past the ';' or until space/tag
+                p = (entity_end < end && *entity_end == ';') ? entity_end + 1 : entity_end;
+                word_start = p;
+            }
+
+            // cover "\'"Special encoded apostrophe with UTF encoding 0xE28099 
+            else if (*p == '\''
+                     || ((unsigned char) *p == 0xE2 && p + 2 < end && (unsigned char) *(p + 1) == 0x80
+                         && (unsigned char) *(p + 2) == 0x99)) {
+                if (p > word_start) {
+                    words.push_back_partial(word_start, p - word_start);
+                }
+                int skip = (*p == '\'') ? 1 : 3;
+                p += skip;
+                word_start = p;
+            }
+
+            // UTF-8 non-breaking space 0xC2A0
+            else if ((unsigned char) *p == 0xC2 && p + 1 < end && (unsigned char) *(p + 1) == 0xA0) {
+                if (p > word_start) {
+                    words.push_back(word_start, p - word_start);
+                    if (in_a_) links.back().anchorText.push_back(string(word_start, p - word_start));
+                }
+                p += 2;
+                word_start = p;
+            }
+
+            // Non-alnum character: push partial word, skip char, track consecutive count
+            // TODO: Decide whether we would prefer to split on these.
+            else if (!isalnum((unsigned char) *p)) {
+                non_alnum_run_++;
+                if (non_alnum_run_ >= MAX_CONSECUTIVE_NON_ALNUM) {
+                    killed_ = true;
+                    return;
+                }
+                if (p > word_start) {
+                    words.push_back_partial(word_start, p - word_start);
+                }
+                word_start = ++p;
+            }
+
+            // Alphanumeric character: reset non-alnum counter, just increment p
+            else {
+                non_alnum_run_ = 0;
                 p++;
+            }
         }
     }
 };

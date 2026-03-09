@@ -30,6 +30,16 @@ public:
         size_ += len;
         data_[size_++] = '\n';
     }
+    // Push part of a word on a split (like on word can't).
+    // Same as push_back, just no delimiter
+    void push_back_partial(const char *start, size_t len) {
+        if (len >= MAX_WORD_MEMORY - size_) {
+            seamus_write(fd_, data_, size_);
+            size_ = 0;
+        }
+        memcpy(data_ + size_, start, len);
+        size_ += len;
+    }
 
     void flush() {
         if (size_ > 0) {
