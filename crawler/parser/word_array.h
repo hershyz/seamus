@@ -2,8 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <initializer_list>
 #include <cstring>
+#include <initializer_list>
 
 #include <stdlib.h>
 
@@ -11,39 +11,32 @@
 
 
 // Array specifically for storing words with added method push_back providing easy use
+template<size_t MAX_MEMORY>
 class word_array {
 public:
     int fd_ = -1;
-    static constexpr uint32_t MAX_WORD_MEMORY = 32 * 1024;
+    static constexpr char DEFAULT_DELIM = '\n';
     word_array()
         : fd_(-1) {}
 
     word_array(int fd)
         : fd_(fd) {}
 
-    void push_back(const char *start, size_t len) {
-        if (len >= MAX_WORD_MEMORY - size_ - 1) {
+    void push_back(const char *start, size_t len, char delim = DEFAULT_DELIM) {
+        if (len >= MAX_MEMORY - size_ - 1) {
             seamus_write(fd_, data_, size_);
             size_ = 0;
         }
         memcpy(data_ + size_, start, len);
         size_ += len;
-        data_[size_++] = '\n';
-    }
-    // Push part of a word on a split (like on word can't).
-    // Same as push_back, just no delimiter
-    void push_back_partial(const char *start, size_t len) {
-        if (len >= MAX_WORD_MEMORY - size_) {
-            seamus_write(fd_, data_, size_);
-            size_ = 0;
+        if (delim != '\0') {
+            data_[size_++] = delim;
         }
-        memcpy(data_ + size_, start, len);
-        size_ += len;
     }
 
     void flush() {
         if (size_ > 0) {
-            seamus_write (fd_, data_, size_);
+            seamus_write(fd_, data_, size_);
             size_ = 0;
         }
     }
@@ -53,7 +46,7 @@ public:
     const char *data() const { return data_; }
 
     char *begin() { return data_; }
-    char *end() { return data_ + MAX_WORD_MEMORY; }
+    char *end() { return data_ + MAX_MEMORY; }
 
     constexpr std::size_t size() const { return size_; }
 
@@ -62,6 +55,6 @@ public:
     const char &operator[](size_t i) const { return data_[i]; }
 
 private:
-    char data_[MAX_WORD_MEMORY];
+    char data_[MAX_MEMORY];
     size_t size_ = 0;
 };

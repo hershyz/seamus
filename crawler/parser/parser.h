@@ -18,30 +18,28 @@ using std::string;
 using std::vector;
 
 
-// Store URL + anchor text
-struct Link {
-    string URL;
-    vector<string> anchorText;
 
-    Link(string url)
-        : URL(static_cast<string &&>(url)) {}
-};
 
 
 class HtmlParser {
 public:
-    static constexpr uint32_t MAX_LINK_VECSIZE = 32 * 1024;
     static constexpr int MAX_CONSECUTIVE_NON_ALNUM = 5;
+    static constexpr char ANCHOR_DELIM= '\r';
+    static constexpr char NULL_DELIM= '\0';
+    static constexpr char SPACE_DELIM= ' ';
+    static constexpr int MAX_LINK_MEMORY = 8 * 1024;
+    static constexpr int MAX_WORD_MEMORY = 32 * 1024;
 
     int in_fd_;
     buffer buf;
-    word_array words;
-    vector<Link> links;
+    word_array<MAX_WORD_MEMORY> words;
+    word_array<MAX_LINK_MEMORY> links;
     string base;
 
-    HtmlParser(int in_fd, int out_fd)
+    HtmlParser(int in_fd, int words_fd, int links_fd)
         : in_fd_(in_fd)
-        , words(out_fd) {}
+        , words(words_fd)
+        , links(links_fd) {}
 
     bool killed() const { return killed_; }
 
@@ -66,6 +64,7 @@ public:
             buf.clear();
         }
         words.flush();
+        links.flush();
     }
 
 private:
@@ -199,7 +198,7 @@ private:
                 // Write back word if relevant
                 if (p > word_start) {
                     size_t word_len = p - word_start;
-                    if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
+                    if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
                     words.push_back(word_start, word_len);
                     word_start = ++p;
                 } else {   // Not tracking a word, just continue
@@ -231,7 +230,7 @@ private:
                     // If the tag was immediately after a word, add it to our list
                     if ((!is_closing && word_start < tag_start - 1) || word_start < tag_start - 2) {
                         size_t word_len = is_closing ? (tag_start - 2) - word_start : (tag_start - 1) - word_start;
-                        if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
+                        if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
 
                         words.push_back(word_start, word_len);
                     }
@@ -241,8 +240,7 @@ private:
                 case DesiredAction::OrdinaryText:
                     if (p < end && is_word_break_char(*p)) {
                         size_t word_len = p - word_start;
-                        if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
-
+                        if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
 
                         words.push_back(word_start, word_len);
                         word_start = ++p;
@@ -309,6 +307,7 @@ private:
                 case DesiredAction::Anchor:
                     if (is_closing) {
                         in_a_ = false;
+                        links.push_back(nullptr, 0);
                         while (p < end && *p != '>') p++;
                     } else {
                         while (p < end && *p != '>') {
@@ -317,7 +316,7 @@ private:
                                 while (p < end && *p != '"') p++;
 
                                 if (p != end && p > a_start) {
-                                    links.push_back(Link(string(a_start, p - a_start)));
+                                    links.push_back(a_start, p - a_start, ANCHOR_DELIM);
                                     in_a_ = true;
                                 }
                             } else
@@ -354,7 +353,7 @@ private:
                             const char *embed_start = (p += 5);
                             while (p < end && *p != '"') p++;
 
-                            links.push_back(Link(string(embed_start, p - embed_start)));
+                            links.push_back(embed_start, p - embed_start, ANCHOR_DELIM);
                         } else
                             p++;
                     }
@@ -379,13 +378,13 @@ private:
                 if (is_apostrophe) {
                     // Push back without adding a delimiter, so we get "cant", not "can t"
                     if (p > word_start) {
-                        words.push_back_partial(word_start, p - word_start);
+                        words.push_back(word_start, p - word_start, NULL_DELIM);
                     }
                 } else {
                     // Treat as word boundary, i.e. space
                     if (p > word_start) {
                         size_t word_len = p - word_start;
-                        if (in_a_) links.back().anchorText.push_back(string(word_start, word_len));
+                        if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
                         words.push_back(word_start, word_len);
                     }
                 }
@@ -399,7 +398,7 @@ private:
                      || ((unsigned char) *p == 0xE2 && p + 2 < end && (unsigned char) *(p + 1) == 0x80
                          && (unsigned char) *(p + 2) == 0x99)) {
                 if (p > word_start) {
-                    words.push_back_partial(word_start, p - word_start);
+                    words.push_back(word_start, p - word_start, NULL_DELIM);
                 }
                 int skip = (*p == '\'') ? 1 : 3;
                 p += skip;
@@ -410,7 +409,7 @@ private:
             else if ((unsigned char) *p == 0xC2 && p + 1 < end && (unsigned char) *(p + 1) == 0xA0) {
                 if (p > word_start) {
                     words.push_back(word_start, p - word_start);
-                    if (in_a_) links.back().anchorText.push_back(string(word_start, p - word_start));
+                    if (in_a_) links.push_back(word_start, p - word_start, SPACE_DELIM);
                 }
                 p += 2;
                 word_start = p;
@@ -425,7 +424,7 @@ private:
                     return;
                 }
                 if (p > word_start) {
-                    words.push_back_partial(word_start, p - word_start);
+                    words.push_back(word_start, p - word_start, NULL_DELIM);
                 }
                 word_start = ++p;
             }
