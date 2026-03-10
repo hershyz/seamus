@@ -34,7 +34,9 @@ public:
     buffer buf;
     word_array<MAX_WORD_MEMORY> words;
     word_array<MAX_LINK_MEMORY> links;
-    string base;
+    static constexpr size_t MAX_BASE_LEN = 256;
+    char base[MAX_BASE_LEN] = {};
+    size_t base_len = 0;
 
     HtmlParser(int in_fd, int words_fd, int links_fd)
         : in_fd_(in_fd)
@@ -337,8 +339,13 @@ private:
                                 const char *base_start = (p += 6);
                                 while (p < end && *p != '"') p++;
 
-                                base = string(base_start, p - base_start);
-                                base_found_ = true;
+                                size_t len = p - base_start;
+                                if (len < MAX_BASE_LEN) {
+                                    memcpy(base, base_start, len);
+                                    base[len] = '\0';
+                                    base_len = len;
+                                    base_found_ = true;
+                                }
                             } else
                                 p++;
                         }
