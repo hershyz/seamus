@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
 #include <iomanip>
 #include <bit>
 #include <stdexcept>
@@ -177,6 +178,11 @@ private:
     }
 
 public:
+
+    bool contains(const Key& key) const {
+        const size_t index = find_index(key);
+        return states[index] == State::FILLED;
+    }
 
     // INITIAL SIZE NEEDS TO BE A POWER OF 2!!!
     unordered_map(size_t capacity = 2048, double loading_factor = 0.65)
