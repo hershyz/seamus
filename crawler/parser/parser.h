@@ -379,6 +379,7 @@ private:
                     // Push back without adding a delimiter, so we get "cant", not "can t"
                     if (p > word_start) {
                         words.push_back(word_start, p - word_start, NULL_DELIM);
+                        if (in_a_) links.push_back(word_start, p - word_start, NULL_DELIM);
                     }
                 } else {
                     // Treat as word boundary, i.e. space
@@ -399,6 +400,7 @@ private:
                          && (unsigned char) *(p + 2) == 0x99)) {
                 if (p > word_start) {
                     words.push_back(word_start, p - word_start, NULL_DELIM);
+                    if (in_a_) links.push_back(word_start, p - word_start, NULL_DELIM);
                 }
                 int skip = (*p == '\'') ? 1 : 3;
                 p += skip;
