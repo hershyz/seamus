@@ -5,28 +5,17 @@
 
 #include <cstring>
 
-#include "word_array.h"
-// #include "../../lib/string.h"
-// #include "../../lib/vector.h"
-#include <string>
-#include <vector>
-
 #include "../../lib/buffer.h"
 #include "HtmlTags.h"
-
-using std::string;
-using std::vector;
-
-
-
+#include "word_array.h"
 
 
 class HtmlParser {
 public:
     static constexpr int MAX_CONSECUTIVE_NON_ALNUM = 5;
-    static constexpr char ANCHOR_DELIM= '\r';
-    static constexpr char NULL_DELIM= '\0';
-    static constexpr char SPACE_DELIM= ' ';
+    static constexpr char ANCHOR_DELIM = '\r';
+    static constexpr char NULL_DELIM = '\0';
+    static constexpr char SPACE_DELIM = ' ';
     static constexpr int MAX_LINK_MEMORY = 8 * 1024;
     static constexpr int MAX_WORD_MEMORY = 32 * 1024;
 
@@ -380,7 +369,7 @@ private:
                     entity_end++;
                 size_t elen = entity_end - entity_start;
                 bool is_apostrophe = (elen == 5 && !strncmp(entity_start, "rsquo", 5))
-                            || (elen == 4 && !strncmp(entity_start, "apos", 4));
+                                  || (elen == 4 && !strncmp(entity_start, "apos", 4));
 
                 if (is_apostrophe) {
                     // Push back without adding a delimiter, so we get "cant", not "can t"
@@ -401,7 +390,7 @@ private:
                 word_start = p;
             }
 
-            // cover "\'"Special encoded apostrophe with UTF encoding 0xE28099 
+            // cover "\'"Special encoded apostrophe with UTF encoding 0xE28099
             else if (*p == '\''
                      || ((unsigned char) *p == 0xE2 && p + 2 < end && (unsigned char) *(p + 1) == 0x80
                          && (unsigned char) *(p + 2) == 0x99)) {
