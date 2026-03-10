@@ -257,7 +257,7 @@ public:
     Value& operator[](const Key& key) {
         rehash(loading_factor);
         if constexpr (std::is_same_v<Key, string>) {
-            string_view sv = key.str_view(0, key.size()+1);
+            string_view sv = key.str_view(0, key.size());
             return (*this)[sv];
         } else {
             const size_t index = find_index(key);
