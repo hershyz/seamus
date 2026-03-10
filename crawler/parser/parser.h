@@ -307,6 +307,10 @@ private:
                                 while (p < end && *p != '"') p++;
 
                                 if (p != end && p > a_start) {
+                                    if (*a_start == '/') {
+                                        // Relative link -- prepend to root URL
+                                        // TODO: need to save the root URL when parsing a page
+                                    }
                                     links.push_back(a_start, p - a_start, ANCHOR_DELIM);
                                     in_a_ = true;
                                 }
