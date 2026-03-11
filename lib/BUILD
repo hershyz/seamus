@@ -7,26 +7,6 @@ cc_library(
 )
 
 cc_library(
-    name = "mutex",
-    hdrs = ["mutex.h"],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "condition_variable",
-    hdrs = ["condition_variable.h"],
-    visibility = ["//visibility:public"],
-    deps = [":mutex"],
-)
-
-cc_library(
-    name = "lock_guard",
-    hdrs = ["lock_guard.h"],
-    visibility = ["//visibility:public"],
-    deps = [":mutex"],
-)
-
-cc_library(
     name = "vector",
     hdrs = ["vector.h"],
     visibility = ["//visibility:public"],

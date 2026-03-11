@@ -1,39 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "mutex_test",
-    srcs = ["mutex_test.cpp"],
-    deps = ["//lib:mutex"],
-)
-
-cc_test(
-    name = "raii_test",
-    srcs = ["raii_test.cpp"],
-    deps = [
-        "//lib:lock_guard",
-        "//lib:mutex",
-    ],
-)
-
-cc_test(
-    name = "condition_variable_test",
-    srcs = ["condition_variable_test.cpp"],
-    deps = [
-        "//lib:condition_variable",
-        "//lib:mutex",
-    ],
-)
-
-cc_test(
-    name = "lock_guard_test",
-    srcs = ["lock_guard_test.cpp"],
-    deps = [
-        "//lib:lock_guard",
-        "//lib:mutex",
-    ],
-)
-
-cc_test(
     name = "vector_test",
     srcs = ["vector_test.cpp"],
     deps = ["//lib:vector"],
