@@ -68,6 +68,7 @@ public:
 
     void inline write_header() {
         words.push_back("<doc>", 5);
+        words.push_back(url.data(), url.size());
     }
 
     void inline write_footer() {
