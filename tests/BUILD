@@ -172,6 +172,7 @@ cc_test(
 cc_test(
     name = "index_test",
     srcs = ["index_test.cpp"],
+    data = ["index_test_simple.in"],
     deps = [
         "//index:index_lib"
     ]

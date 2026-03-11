@@ -5,7 +5,7 @@
 void test_add_page_simple() {
     IndexChunk idx;
 
-    idx.add_page(string("index_test_simple.in"));
+    assert(idx.add_page(string("tests/index_test_simple.in")));
 }
 
 int main() {

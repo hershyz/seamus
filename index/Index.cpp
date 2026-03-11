@@ -84,12 +84,12 @@ void IndexChunk::persist() {
 
         // Used to fill the internal index at the top of a posting list, which maps doc ID to byte offset from start of index
         uint64_t internal_offset = 0;
-        uint32_t num_docs = index[alphabetized_entries[i]].posts[0].doc == 0 ? 1 : 0;
+        uint32_t num_docs = index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts[0].doc == 0 ? 1 : 0;
 
         // 32 bit ID, 64 bit offset, 2 filler chars per entry
         const uint64_t INTERNAL_INDEX_ENTRY_SIZE = 5 + 6 + 2;
 
-        for (post p : index[alphabetized_entries[i]].posts) {
+        for (post p : index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts) {
             // Utf8 encoding size of loc offset (no delimiters)
             uint64_t post_size = SizeOfUtf8(p.loc - last_loc);
 
@@ -148,13 +148,13 @@ void IndexChunk::persist() {
 
     // Loop through all words
     for (uint32_t i = 0; i < N; i++) {
-        uint64_t size = index[alphabetized_entries[i]].posts.size(); // Needs to be an lvalue for fwrite
+        uint64_t size = index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts.size(); // Needs to be an lvalue for fwrite
 
         // Write the number of occurrences and documents
         // <64b NUM POSTS> <64b NUM DOCS>\n
         fwrite(&size, sizeof(uint64_t), 1, fd);
         fwrite(" ", sizeof(char), 1, fd);
-        fwrite(&index[alphabetized_entries[i]].n_docs, sizeof(uint64_t), 1, fd);
+        fwrite(&index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].n_docs, sizeof(uint64_t), 1, fd);
         fwrite("\n", sizeof(char), 1, fd);
 
         // Write the internal index
@@ -180,7 +180,7 @@ void IndexChunk::persist() {
 
         // For each word occurrence: (IF NEW DOC <0b0||varlen DOC OFFSET>)<varlen LOC ID/OFFSET>
         // Because we're doing UTF 8, no delimiters
-        for (post p : index[alphabetized_entries[i]].posts) {
+        for (post p : index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts) {
             // Only write the doc offset if it's a new document, in which case write the offset after the flag
             if (p.doc > last_doc) {
                 Utf8* doc_end = WriteUtf8(doc_buff + 1, p.doc - last_doc, doc_buff + MAX_UTF8_LEN + 1);
@@ -211,7 +211,7 @@ vector<string> IndexChunk::sort_entries() {
     res.reserve(index.size());
 
     for (auto it = index.begin(); it != index.end(); ++it) {
-        res.push_back((*it).key);
+        res.push_back(string((*it).key.data(), (*it).key.size()));
     }
 
     radix_sort(res);
@@ -220,6 +220,10 @@ vector<string> IndexChunk::sort_entries() {
 
 bool IndexChunk::add_page(const string &path) {
     FILE* fd = fopen(path.data(), "r");
+    if (fd == nullptr) {
+        perror("Error opening file.\n");
+        return false;
+    }
     
     // Set of words already encountered in the document to track number of documents word appears in
     unordered_map<string, bool> word_set;
@@ -227,7 +231,7 @@ bool IndexChunk::add_page(const string &path) {
 
     // Check title header
     fgets(buff, sizeof(buff), fd);
-    if (strcmp(buff, "<title>")) {
+    if (strcmp(buff, "<title>\n")) {
         perror("Expected title header missing.\n");
         return false;
     }
@@ -237,23 +241,21 @@ bool IndexChunk::add_page(const string &path) {
 
     // Start a counter for word locations
     uint32_t loc = 0;
-    uint32_t title_end = 0;
 
     // Parse title and body words
     while(fgets(buff, sizeof(buff), fd)) {
-        if (!strcmp(buff, "<\\title>")) {
-            // Title section is over, mark it
-            title_end = loc; // Title end is inclusive
-            // TODO: How do we get title_end to the URL store?
-        } else {
-            // TODO: I believe these all have \n at the end -- have to remove that
-            string word = string(buff, strlen(buff));
-            if (!word_set[word]) {
-                word_set[word] = true;
-                index[word].n_docs++;
+        // Don't push the title closing tag
+        if (strcmp(buff, "<\\title>\n")) {
+            // -1 because all words have new line at the end from fgets
+            // TODO: The very last word won't have \n -- have to deal with that, but think it's a parser change
+            string_view word_view = string_view(buff, strlen(buff) - 1);
+            // TODO: Have to case convert, but should that happen here or in parser?
+            if (!word_set[word_view]) {
+                word_set[word_view] = true;
+                index[word_view].n_docs++;
             }
 
-            index[word].posts.push_back({doc, ++loc});
+            index[word_view].posts.push_back({doc, ++loc});
         }
     }
 
