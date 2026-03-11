@@ -1,41 +1,41 @@
 #bodyContentJump to content 
-/wiki/Main_PageMain page 
-/wiki/Wikipedia:ContentsContents 
-/wiki/Portal:Current_eventsCurrent events 
-/wiki/Special:RandomRandom article 
-/wiki/Wikipedia:AboutAbout Wikipedia 
-//en.wikipedia.org/wiki/Wikipedia:Contact_usContact us 
-/wiki/Help:ContentsHelp 
-/wiki/Help:IntroductionLearn to edit 
-/wiki/Wikipedia:Community_portalCommunity portal 
-/wiki/Special:RecentChangesRecent changes 
-/wiki/Wikipedia:File_upload_wizardUpload file 
-/wiki/Special:SpecialPagesSpecial pages 
-/wiki/Main_Page
-/wiki/Special:SearchSearch 
+https://en.wikipedia.org/wiki/Main_PageMain page 
+https://en.wikipedia.org/wiki/Wikipedia:ContentsContents 
+https://en.wikipedia.org/wiki/Portal:Current_eventsCurrent events 
+https://en.wikipedia.org/wiki/Special:RandomRandom article 
+https://en.wikipedia.org/wiki/Wikipedia:AboutAbout Wikipedia 
+https://en.wikipedia.org//en.wikipedia.org/wiki/Wikipedia:Contact_usContact us 
+https://en.wikipedia.org/wiki/Help:ContentsHelp 
+https://en.wikipedia.org/wiki/Help:IntroductionLearn to edit 
+https://en.wikipedia.org/wiki/Wikipedia:Community_portalCommunity portal 
+https://en.wikipedia.org/wiki/Special:RecentChangesRecent changes 
+https://en.wikipedia.org/wiki/Wikipedia:File_upload_wizardUpload file 
+https://en.wikipedia.org/wiki/Special:SpecialPagesSpecial pages 
+https://en.wikipedia.org/wiki/Main_Page
+https://en.wikipedia.org/wiki/Special:SearchSearch 
 https://donate.wikimedia.org/?wmf_source=donate&amp;wmf_medium=sidebar&amp;wmf_campaign=en.wikipedia.org&amp;uselang=enDonate 
-/w/index.php?title=Special:CreateAccount&amp;returnto=Main+PageCreate account 
-/w/index.php?title=Special:UserLogin&amp;returnto=Main+PageLog in 
+https://en.wikipedia.org/w/index.php?title=Special:CreateAccount&amp;returnto=Main+PageCreate account 
+https://en.wikipedia.org/w/index.php?title=Special:UserLogin&amp;returnto=Main+PageLog in 
 https://donate.wikimedia.org/?wmf_source=donate&amp;wmf_medium=sidebar&amp;wmf_campaign=en.wikipedia.org&amp;uselang=enDonate 
-/w/index.php?title=Special:CreateAccount&amp;returnto=Main+PageCreate account 
-/w/index.php?title=Special:UserLogin&amp;returnto=Main+PageLog in 
-/wiki/Main_PageMain Page 
-/wiki/Talk:Main_PageTalk 
-/wiki/Main_PageRead 
-/w/index.php?title=Main_Page&amp;action=editView source 
-/w/index.php?title=Main_Page&amp;action=historyView history 
-/wiki/Main_PageRead 
-/w/index.php?title=Main_Page&amp;action=editView source 
-/w/index.php?title=Main_Page&amp;action=historyView history 
-/wiki/Special:WhatLinksHere/Main_PageWhat links here 
-/wiki/Special:RecentChangesLinked/Main_PageRelated changes 
-//en.wikipedia.org/wiki/Wikipedia:File_Upload_WizardUpload file 
-/w/index.php?title=Main_Page&amp;oldid=1336841542Permanent link 
-/w/index.php?title=Main_Page&amp;action=infoPage information 
-/w/index.php?title=Special:CiteThisPage&amp;page=Main_Page&amp;id=1336841542&amp;wpFormIdentifier=titleformCite this page 
-/w/index.php?title=Special:UrlShortener&amp;url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMain_PageGet shortened URL 
-/w/index.php?title=Special:DownloadAsPdf&amp;page=Main_Page&amp;action=show-download-screenDownload as PDF 
-/w/index.php?title=Main_Page&amp;printable=yesPrintable version 
+https://en.wikipedia.org/w/index.php?title=Special:CreateAccount&amp;returnto=Main+PageCreate account 
+https://en.wikipedia.org/w/index.php?title=Special:UserLogin&amp;returnto=Main+PageLog in 
+https://en.wikipedia.org/wiki/Main_PageMain Page 
+https://en.wikipedia.org/wiki/Talk:Main_PageTalk 
+https://en.wikipedia.org/wiki/Main_PageRead 
+https://en.wikipedia.org/w/index.php?title=Main_Page&amp;action=editView source 
+https://en.wikipedia.org/w/index.php?title=Main_Page&amp;action=historyView history 
+https://en.wikipedia.org/wiki/Main_PageRead 
+https://en.wikipedia.org/w/index.php?title=Main_Page&amp;action=editView source 
+https://en.wikipedia.org/w/index.php?title=Main_Page&amp;action=historyView history 
+https://en.wikipedia.org/wiki/Special:WhatLinksHere/Main_PageWhat links here 
+https://en.wikipedia.org/wiki/Special:RecentChangesLinked/Main_PageRelated changes 
+https://en.wikipedia.org//en.wikipedia.org/wiki/Wikipedia:File_Upload_WizardUpload file 
+https://en.wikipedia.org/w/index.php?title=Main_Page&amp;oldid=1336841542Permanent link 
+https://en.wikipedia.org/w/index.php?title=Main_Page&amp;action=infoPage information 
+https://en.wikipedia.org/w/index.php?title=Special:CiteThisPage&amp;page=Main_Page&amp;id=1336841542&amp;wpFormIdentifier=titleformCite this page 
+https://en.wikipedia.org/w/index.php?title=Special:UrlShortener&amp;url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMain_PageGet shortened URL 
+https://en.wikipedia.org/w/index.php?title=Special:DownloadAsPdf&amp;page=Main_Page&amp;action=show-download-screenDownload as PDF 
+https://en.wikipedia.org/w/index.php?title=Main_Page&amp;printable=yesPrintable version 
 https://commons.wikimedia.org/wiki/Main_PageWikimedia Commons 
 https://foundation.wikimedia.org/wiki/HomeWikimedia Foundation 
 https://www.mediawiki.org/wiki/MediaWikiMediaWiki 
@@ -54,168 +54,167 @@ https://en.wikiversity.org/wiki/Wikiversity:Main_PageWikiversity
 https://en.wikivoyage.org/wiki/Main_PageWikivoyage 
 https://en.wiktionary.org/wiki/Wiktionary:Main_PageWiktionary 
 https://www.wikidata.org/wiki/Special:EntityPage/Q5296Wikidata item 
-/wiki/WikipediaWikipedia 
-/wiki/Free_contentfree 
-/wiki/Encyclopediaencyclopedia 
-/wiki/Help:Introduction_to_Wikipediaanyone can edit 
-/wiki/Special:Statistics285 731 
-/wiki/Special:Statistics7 149 517 
-/wiki/English_languageEnglish 
-/wiki/File:1871_FA_Cup.jpg
-/wiki/1876_FA_Cup_final1876 FA Cup final 
-/wiki/Association_footballassociation football 
-/wiki/Wanderers_F.C.Wanderers F C 
-/wiki/Old_Etonians_F.C.Old Etonians F C 
-/wiki/The_OvalKennington Oval 
-/wiki/FA_CupFA Cup 
-/wiki/FA_Cup_finalFA Cup final 
-/wiki/Replay_(sports)#Association_footballreplay 
-/wiki/John_Hawley_EdwardsJohn Hawley Edwards 
-/wiki/Alexander_BonsorAlexander Bonsor 
-/wiki/Charles_WollastonCharles Wollaston 
-/wiki/Thomas_Bridges_HughesThomas Bridges Hughes 
-/wiki/1876_FA_Cup_finalThis article 
-/wiki/Wikipedia:Featured_topicsfeatured topic 
-/wiki/Wikipedia:Featured_topics/Wanderers_F.C.Wanderers F C 
-/wiki/Duckport_CanalDuckport Canal 
-/wiki/Zungeni_Mountain_skirmishZungeni Mountain skirmish 
-/wiki/Luisa_CapetilloLuisa Capetillo 
-/wiki/Wikipedia:Today%27s_featured_article/March_2026Archive 
+https://en.wikipedia.org/wiki/WikipediaWikipedia 
+https://en.wikipedia.org/wiki/Free_contentfree 
+https://en.wikipedia.org/wiki/Encyclopediaencyclopedia 
+https://en.wikipedia.org/wiki/Help:Introduction_to_Wikipediaanyone can edit 
+https://en.wikipedia.org/wiki/Special:Statistics285 731 
+https://en.wikipedia.org/wiki/Special:Statistics7 149 774 
+https://en.wikipedia.org/wiki/English_languageEnglish 
+https://en.wikipedia.org/wiki/File:1871_FA_Cup.jpg
+https://en.wikipedia.org/wiki/1876_FA_Cup_final1876 FA Cup final 
+https://en.wikipedia.org/wiki/Association_footballassociation football 
+https://en.wikipedia.org/wiki/Wanderers_F.C.Wanderers F C 
+https://en.wikipedia.org/wiki/Old_Etonians_F.C.Old Etonians F C 
+https://en.wikipedia.org/wiki/The_OvalKennington Oval 
+https://en.wikipedia.org/wiki/FA_CupFA Cup 
+https://en.wikipedia.org/wiki/FA_Cup_finalFA Cup final 
+https://en.wikipedia.org/wiki/Replay_(sports)#Association_footballreplay 
+https://en.wikipedia.org/wiki/John_Hawley_EdwardsJohn Hawley Edwards 
+https://en.wikipedia.org/wiki/Alexander_BonsorAlexander Bonsor 
+https://en.wikipedia.org/wiki/Charles_WollastonCharles Wollaston 
+https://en.wikipedia.org/wiki/Thomas_Bridges_HughesThomas Bridges Hughes 
+https://en.wikipedia.org/wiki/1876_FA_Cup_finalThis article 
+https://en.wikipedia.org/wiki/Wikipedia:Featured_topicsfeatured topic 
+https://en.wikipedia.org/wiki/Wikipedia:Featured_topics/Wanderers_F.C.Wanderers F C 
+https://en.wikipedia.org/wiki/Duckport_CanalDuckport Canal 
+https://en.wikipedia.org/wiki/Zungeni_Mountain_skirmishZungeni Mountain skirmish 
+https://en.wikipedia.org/wiki/Luisa_CapetilloLuisa Capetillo 
+https://en.wikipedia.org/wiki/Wikipedia:Today%27s_featured_article/March_2026Archive 
 https://lists.wikimedia.org/postorius/lists/daily-article-l.lists.wikimedia.org/By email 
-/wiki/Wikipedia:Featured_articles_(linked_from_TFAfooter)More featured articles 
-/wiki/Wikipedia:About_Today%27s_featured_articleAbout 
-/wiki/File:Populus_Hotel_Construction_Denver_Colorado_2024_(cropped).jpg
-/wiki/Populus_DenverPopulus Denver 
-/wiki/DalmatiusDalmatius 
-/wiki/Constantinian_dynastyConstantinian dynasty 
-/wiki/1973_Flores_cyclonethe deadliest cyclone in the Southern Hemisphere 
-/wiki/Israel_KeyesIsrael Keyes 
-/wiki/Drill_DozerDrill Dozer 
-/wiki/Swiss_rollroll cakes 
-/wiki/Harold_OrlobHarold Orlob 
-/wiki/The_Mosquito_BowlThe Mosquito Bowl 
-/wiki/Battle_of_Okinawabattle of Okinawa 
-/wiki/Adelaide_IronsideAdelaide Ironside 
-/wiki/Giuseppe_GaribaldiGiuseppe Garibaldi 
-/wiki/High_Bridge_(New_York_City)High Bridge 
-/wiki/Wikipedia:Recent_additionsArchive 
-/wiki/Help:Your_first_articleStart a new article 
-/wiki/Template_talk:Did_you_knowNominate an article 
-/wiki/File:Ayatollah_Mojtaba_Khamenei,_March_8,_2026_(cropped).jpg
-/wiki/Mojtaba_KhameneiMojtaba Khamenei 
-/wiki/2026_Iranian_Supreme_Leader_electionis elected 
-/wiki/Supreme_Leader_of_IranSupreme Leader of Iran 
-/wiki/Assassination_of_Ali_Khameneithe assassination 
-/wiki/Ali_KhameneiAli Khamenei 
-/wiki/2026_Kenya_floodsFlooding 
-/wiki/2026_Winter_ParalympicsThe Winter Paralympics 
-/wiki/2026_Winter_Paralympics_opening_ceremonyopen 
-/wiki/List_of_Iranian_officials_killed_during_the_2026_Iran_warkilling senior officials 
-/wiki/2026_Iran_wara wider war 
-/wiki/Lockheed_C-130_HerculesLockheed C 130 Hercules 
-/wiki/Bolivian_Air_ForceBolivian Air Force 
-/wiki/2026_Bolivian_Air_Force_Lockheed_C-130_crashcrashes into a road 
-/wiki/El_AltoEl Alto 
-/wiki/Russo-Ukrainian_war_(2022%E2%80%93present)Russo Ukrainian war 
-/wiki/Timeline_of_the_Russo-Ukrainian_war_(1_January_2026_%E2%80%93_present)timeline 
-/wiki/Sudanese_civil_war_(2023%E2%80%93present)Sudanese civil war 
-/wiki/Timeline_of_the_Sudanese_civil_war_(2026)timeline 
-/wiki/Deaths_in_2026Recent deaths 
-/wiki/Andrew_Watson_(bishop)Andrew Watson 
-/wiki/Alvin_GreeneAlvin Greene 
-/wiki/Soham_murders#Ian_HuntleyIan Huntley 
-/wiki/Bernard_LafayetteBernard Lafayette 
-/wiki/K%C3%A4the_Menzel-Jordanthe Menzel Jordan 
-/wiki/Song_PingSong Ping 
-/wiki/Portal:Current_eventsMore current events 
-/wiki/Wikipedia:In_the_news/CandidatesNominate an article 
-/wiki/March_11March 11 
-/wiki/File:Rigoletto_premiere_poster-res.jpg
-/wiki/18511851 
-/wiki/RigolettoRigoletto 
-/wiki/La_FeniceLa Fenice 
-/wiki/19931993 
-/wiki/United_States_SenateU S Senate 
-/wiki/Janet_RenoJanet Reno 
-/wiki/United_States_Attorney_GeneralUnited States attorney general 
-/wiki/20072007 
-/wiki/2007_Georgia_helicopter_incidenta helicopter attack 
-/wiki/Kodori_ValleyKodori Valley 
-/wiki/AbkhaziaAbkhazia 
-/wiki/20102010 
-/wiki/Sebasti%C3%A1n_Pi%C3%B1eran era 
-/wiki/2010_Pichilemu_earthquakesearthquakes 
-/wiki/Seismic_magnitude_scales#MwM w 
-/wiki/O%27Higgins_RegionOHiggins Region 
-/wiki/PichilemuPichilemu 
-/wiki/20202020 
-/wiki/World_Health_OrganizationWorld Health Organization WHO 
-/wiki/COVID-19COVID 19 
-/wiki/SARS-CoV-2virus 
-/wiki/Epidemicepidemic 
-/wiki/COVID-19_pandemicpandemic 
-/wiki/Mary_of_WoodstockMary of Woodstock 
-/wiki/Stanis%C5%82aw_Koniecpolskiaw Koniecpolski 
-/wiki/Ralph_AbernathyRalph Abernathy 
-/wiki/Gladys_Pearl_BakerGladys Pearl Baker 
-/wiki/March_10March 10 
-/wiki/March_11March 11 
-/wiki/March_12March 12 
-/wiki/Wikipedia:Selected_anniversaries/MarchArchive 
+https://en.wikipedia.org/wiki/Wikipedia:Featured_articles_(linked_from_TFAfooter)More featured articles 
+https://en.wikipedia.org/wiki/Wikipedia:About_Today%27s_featured_articleAbout 
+https://en.wikipedia.org/wiki/File:Populus_Hotel_Construction_Denver_Colorado_2024_(cropped).jpg
+https://en.wikipedia.org/wiki/Populus_DenverPopulus Denver 
+https://en.wikipedia.org/wiki/DalmatiusDalmatius 
+https://en.wikipedia.org/wiki/Constantinian_dynastyConstantinian dynasty 
+https://en.wikipedia.org/wiki/1973_Flores_cyclonethe deadliest cyclone in the Southern Hemisphere 
+https://en.wikipedia.org/wiki/Israel_KeyesIsrael Keyes 
+https://en.wikipedia.org/wiki/Drill_DozerDrill Dozer 
+https://en.wikipedia.org/wiki/Swiss_rollroll cakes 
+https://en.wikipedia.org/wiki/Harold_OrlobHarold Orlob 
+https://en.wikipedia.org/wiki/The_Mosquito_BowlThe Mosquito Bowl 
+https://en.wikipedia.org/wiki/Battle_of_Okinawabattle of Okinawa 
+https://en.wikipedia.org/wiki/Adelaide_IronsideAdelaide Ironside 
+https://en.wikipedia.org/wiki/Giuseppe_GaribaldiGiuseppe Garibaldi 
+https://en.wikipedia.org/wiki/High_Bridge_(New_York_City)High Bridge 
+https://en.wikipedia.org/wiki/Wikipedia:Recent_additionsArchive 
+https://en.wikipedia.org/wiki/Help:Your_first_articleStart a new article 
+https://en.wikipedia.org/wiki/Template_talk:Did_you_knowNominate an article 
+https://en.wikipedia.org/wiki/File:Jasprit_Bumrah_in_PMO_New_Delhi.jpg
+https://en.wikipedia.org/wiki/2026_Men%27s_T20_World_CupMens T20 World Cup 
+https://en.wikipedia.org/wiki/India_national_cricket_teamIndia 
+https://en.wikipedia.org/wiki/New_Zealand_national_cricket_teamNew Zealand 
+https://en.wikipedia.org/wiki/2026_Men%27s_T20_World_Cup_finalthe final 
+https://en.wikipedia.org/wiki/Jasprit_BumrahJasprit Bumrah 
+https://en.wikipedia.org/wiki/Mojtaba_KhameneiMojtaba Khamenei 
+https://en.wikipedia.org/wiki/2026_Iranian_Supreme_Leader_electionis elected 
+https://en.wikipedia.org/wiki/Supreme_Leader_of_IranSupreme Leader of Iran 
+https://en.wikipedia.org/wiki/Assassination_of_Ali_Khameneithe assassination 
+https://en.wikipedia.org/wiki/Ali_KhameneiAli Khamenei 
+https://en.wikipedia.org/wiki/2026_Kenya_floodsFlooding 
+https://en.wikipedia.org/wiki/2026_Winter_ParalympicsThe Winter Paralympics 
+https://en.wikipedia.org/wiki/2026_Winter_Paralympics_opening_ceremonyopen 
+https://en.wikipedia.org/wiki/List_of_Iranian_officials_killed_during_the_2026_Iran_warkilling senior officials 
+https://en.wikipedia.org/wiki/2026_Iran_wara wider war 
+https://en.wikipedia.org/wiki/Russo-Ukrainian_war_(2022%E2%80%93present)Russo Ukrainian war 
+https://en.wikipedia.org/wiki/Timeline_of_the_Russo-Ukrainian_war_(1_January_2026_%E2%80%93_present)timeline 
+https://en.wikipedia.org/wiki/Sudanese_civil_war_(2023%E2%80%93present)Sudanese civil war 
+https://en.wikipedia.org/wiki/Timeline_of_the_Sudanese_civil_war_(2026)timeline 
+https://en.wikipedia.org/wiki/Deaths_in_2026Recent deaths 
+https://en.wikipedia.org/wiki/Philip_TrusttumPhilip Trusttum 
+https://en.wikipedia.org/wiki/Andrew_Watson_(bishop)Andrew Watson 
+https://en.wikipedia.org/wiki/Alvin_GreeneAlvin Greene 
+https://en.wikipedia.org/wiki/Soham_murders#Ian_HuntleyIan Huntley 
+https://en.wikipedia.org/wiki/Bernard_LafayetteBernard Lafayette 
+https://en.wikipedia.org/wiki/K%C3%A4the_Menzel-Jordanthe Menzel Jordan 
+https://en.wikipedia.org/wiki/Portal:Current_eventsMore current events 
+https://en.wikipedia.org/wiki/Wikipedia:In_the_news/CandidatesNominate an article 
+https://en.wikipedia.org/wiki/March_11March 11 
+https://en.wikipedia.org/wiki/File:Rigoletto_premiere_poster-res.jpg
+https://en.wikipedia.org/wiki/18511851 
+https://en.wikipedia.org/wiki/RigolettoRigoletto 
+https://en.wikipedia.org/wiki/La_FeniceLa Fenice 
+https://en.wikipedia.org/wiki/19931993 
+https://en.wikipedia.org/wiki/United_States_SenateU S Senate 
+https://en.wikipedia.org/wiki/Janet_RenoJanet Reno 
+https://en.wikipedia.org/wiki/United_States_Attorney_GeneralUnited States attorney general 
+https://en.wikipedia.org/wiki/20072007 
+https://en.wikipedia.org/wiki/2007_Georgia_helicopter_incidenta helicopter attack 
+https://en.wikipedia.org/wiki/Kodori_ValleyKodori Valley 
+https://en.wikipedia.org/wiki/AbkhaziaAbkhazia 
+https://en.wikipedia.org/wiki/20102010 
+https://en.wikipedia.org/wiki/Sebasti%C3%A1n_Pi%C3%B1eran era 
+https://en.wikipedia.org/wiki/2010_Pichilemu_earthquakesearthquakes 
+https://en.wikipedia.org/wiki/Seismic_magnitude_scales#MwM w 
+https://en.wikipedia.org/wiki/O%27Higgins_RegionOHiggins Region 
+https://en.wikipedia.org/wiki/PichilemuPichilemu 
+https://en.wikipedia.org/wiki/20202020 
+https://en.wikipedia.org/wiki/World_Health_OrganizationWorld Health Organization WHO 
+https://en.wikipedia.org/wiki/SARS-CoV-2COVID 19 virus 
+https://en.wikipedia.org/wiki/COVID-19_pandemicpandemic 
+https://en.wikipedia.org/wiki/Mary_of_WoodstockMary of Woodstock 
+https://en.wikipedia.org/wiki/Stanis%C5%82aw_Koniecpolskiaw Koniecpolski 
+https://en.wikipedia.org/wiki/Ralph_AbernathyRalph Abernathy 
+https://en.wikipedia.org/wiki/Gladys_Pearl_BakerGladys Pearl Baker 
+https://en.wikipedia.org/wiki/March_10March 10 
+https://en.wikipedia.org/wiki/March_11March 11 
+https://en.wikipedia.org/wiki/March_12March 12 
+https://en.wikipedia.org/wiki/Wikipedia:Selected_anniversaries/MarchArchive 
 https://lists.wikimedia.org/postorius/lists/daily-article-l.lists.wikimedia.org/By email 
-/wiki/List_of_days_of_the_yearList of days of the year 
-/wiki/Wikipedia:Selected_anniversariesAbout 
-/wiki/File:Wembley_Stadium_Twin_Towers.jpg
-/wiki/Venues_of_the_1948_Summer_OlympicsTwenty five venues hosted the events 
-/wiki/1948_Summer_Olympics1948 Summer Olympics 
-/wiki/Olympic_GamesOlympic Games 
-/wiki/Gymnasticsgymnastics 
-/wiki/Swimming_(sport)swimming 
-/wiki/Water_polowater polo 
-/wiki/Rationing_in_the_United_KingdomUnited Kingdom was still under rationing 
-/wiki/Olympic_VillageOlympic Village 
-/wiki/Wembley_Stadium_(1923)Empire Stadium 
-/wiki/Earls_Court_Exhibition_CentreEarls Court Exhibition Centre 
-/wiki/Wembley_ArenaWembley Arena 
-/wiki/Venues_of_the_2012_Summer_Olympics_and_Paralympicsvenues of the 2012 Summer Olympics 
-/wiki/Venues_of_the_1948_Summer_OlympicsFull list 
-/wiki/List_of_Volition_gamesVolition games 
-/wiki/List_of_Batwoman_episodesBatwoman episodes 
-/wiki/List_of_NFL_annual_passing_touchdowns_leadersNFL annual passing touchdowns leaders 
-/wiki/Wikipedia:Today%27s_featured_list/March_2026Archive 
-/wiki/Wikipedia:Featured_listsMore featured lists 
-/wiki/File:05june-rapiddow-wide.gif
-/wiki/Mobile_radar_observation_of_tornadoesMobile radar observation of tornadoes 
-/wiki/Weather_radarweather radar 
-/wiki/Tornadotornadoes 
-/wiki/Atmospheric_convectionconvective 
-/wiki/Mesonetmesonets 
-/wiki/Lockheed_P-3_OrionLockheed P 3 Orion 
-/wiki/Doppler_on_WheelsDoppler on Wheels 
-/wiki/VORTEX_projectsVORTEX1 
-/wiki/RaXPolRaXPol 
-/wiki/University_of_OklahomaUniversity of Oklahoma 
-/wiki/National_Severe_Storms_LaboratoryNational Severe Storms Laboratory 
-/wiki/Advanced_Stirling_radioisotope_generator#Flight_proposalsHORUS 
-/wiki/Phased_arrayphased array 
-/wiki/Hook_echohook echo 
-/wiki/Mesocyclonemesocyclone 
-/wiki/2009_Goshen_County_tornado2009 Goshen County tornado 
-/wiki/Tornado_debris_signaturereflectivity data 
-/wiki/Joshua_WurmanJoshua Wurman 
-/wiki/Template:POTD/2026-03-10Plumed whistling duck 
-/wiki/Template:POTD/2026-03-09Game com 
-/wiki/Template:POTD/2026-03-08Lilly Walleni 
-/wiki/Wikipedia:Picture_of_the_day/ArchiveArchive 
-/wiki/Wikipedia:Featured_picturesMore featured pictures 
-/wiki/Wikipedia:Community_portalCommunity portal 
-/wiki/Wikipedia:Village_pumpVillage pump 
-/wiki/Wikipedia:NewsSite news 
-/wiki/Wikipedia:TeahouseTeahouse 
-/wiki/Wikipedia:Help_deskHelp desk 
-/wiki/Wikipedia:Reference_deskReference desk 
-/wiki/Wikipedia:Contents/PortalsContent portals 
-/wiki/Wikimedia_FoundationWikimedia Foundation 
+https://en.wikipedia.org/wiki/List_of_days_of_the_yearList of days of the year 
+https://en.wikipedia.org/wiki/Wikipedia:Selected_anniversariesAbout 
+https://en.wikipedia.org/wiki/File:Wembley_Stadium_Twin_Towers.jpg
+https://en.wikipedia.org/wiki/Venues_of_the_1948_Summer_OlympicsTwenty five venues hosted the events 
+https://en.wikipedia.org/wiki/1948_Summer_Olympics1948 Summer Olympics 
+https://en.wikipedia.org/wiki/Olympic_GamesOlympic Games 
+https://en.wikipedia.org/wiki/Gymnasticsgymnastics 
+https://en.wikipedia.org/wiki/Swimming_(sport)swimming 
+https://en.wikipedia.org/wiki/Water_polowater polo 
+https://en.wikipedia.org/wiki/Rationing_in_the_United_KingdomUnited Kingdom was still under rationing 
+https://en.wikipedia.org/wiki/Olympic_VillageOlympic Village 
+https://en.wikipedia.org/wiki/Wembley_Stadium_(1923)Empire Stadium 
+https://en.wikipedia.org/wiki/Earls_Court_Exhibition_CentreEarls Court Exhibition Centre 
+https://en.wikipedia.org/wiki/Wembley_ArenaWembley Arena 
+https://en.wikipedia.org/wiki/Venues_of_the_2012_Summer_Olympics_and_Paralympicsvenues of the 2012 Summer Olympics 
+https://en.wikipedia.org/wiki/Venues_of_the_1948_Summer_OlympicsFull list 
+https://en.wikipedia.org/wiki/List_of_Volition_gamesVolition games 
+https://en.wikipedia.org/wiki/List_of_Batwoman_episodesBatwoman episodes 
+https://en.wikipedia.org/wiki/List_of_NFL_annual_passing_touchdowns_leadersNFL annual passing touchdowns leaders 
+https://en.wikipedia.org/wiki/Wikipedia:Today%27s_featured_list/March_2026Archive 
+https://en.wikipedia.org/wiki/Wikipedia:Featured_listsMore featured lists 
+https://en.wikipedia.org/wiki/File:05june-rapiddow-wide.gif
+https://en.wikipedia.org/wiki/Mobile_radar_observation_of_tornadoesMobile radar observation of tornadoes 
+https://en.wikipedia.org/wiki/Weather_radarweather radar 
+https://en.wikipedia.org/wiki/Tornadotornadoes 
+https://en.wikipedia.org/wiki/Atmospheric_convectionconvective 
+https://en.wikipedia.org/wiki/Mesonetmesonets 
+https://en.wikipedia.org/wiki/Lockheed_P-3_OrionLockheed P 3 Orion 
+https://en.wikipedia.org/wiki/Doppler_on_WheelsDoppler on Wheels 
+https://en.wikipedia.org/wiki/VORTEX_projectsVORTEX1 
+https://en.wikipedia.org/wiki/RaXPolRaXPol 
+https://en.wikipedia.org/wiki/University_of_OklahomaUniversity of Oklahoma 
+https://en.wikipedia.org/wiki/National_Severe_Storms_LaboratoryNational Severe Storms Laboratory 
+https://en.wikipedia.org/wiki/Advanced_Stirling_radioisotope_generator#Flight_proposalsHORUS 
+https://en.wikipedia.org/wiki/Phased_arrayphased array 
+https://en.wikipedia.org/wiki/Hook_echohook echo 
+https://en.wikipedia.org/wiki/Mesocyclonemesocyclone 
+https://en.wikipedia.org/wiki/2009_Goshen_County_tornado2009 Goshen County tornado 
+https://en.wikipedia.org/wiki/Tornado_debris_signaturereflectivity data 
+https://en.wikipedia.org/wiki/Joshua_WurmanJoshua Wurman 
+https://en.wikipedia.org/wiki/Template:POTD/2026-03-10Plumed whistling duck 
+https://en.wikipedia.org/wiki/Template:POTD/2026-03-09Game com 
+https://en.wikipedia.org/wiki/Template:POTD/2026-03-08Lilly Walleni 
+https://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day/ArchiveArchive 
+https://en.wikipedia.org/wiki/Wikipedia:Featured_picturesMore featured pictures 
+https://en.wikipedia.org/wiki/Wikipedia:Community_portalCommunity portal 
+https://en.wikipedia.org/wiki/Wikipedia:Village_pumpVillage pump 
+https://en.wikipedia.org/wiki/Wikipedia:NewsSite news 
+https://en.wikipedia.org/wiki/Wikipedia:TeahouseTeahouse 
+https://en.wikipedia.org/wiki/Wikipedia:Help_deskHelp desk 
+https://en.wikipedia.org/wiki/Wikipedia:Reference_deskReference desk 
+https://en.wikipedia.org/wiki/Wikipedia:Contents/PortalsContent portals 
+https://en.wikipedia.org/wiki/Wikimedia_FoundationWikimedia Foundation 
 https://wikimediafoundation.org/our-work/wikimedia-projects/projects 
 https://commons.wikimedia.org/wiki/
 https://commons.wikimedia.org/wiki/Commons 
@@ -242,7 +241,7 @@ https://en.wikivoyage.org/wiki/Wikivoyage
 https://en.wiktionary.org/wiki/
 https://en.wiktionary.org/wiki/
 https://en.wiktionary.org/wiki/Wiktionary 
-/wiki/English_languageEnglish 
+https://en.wikipedia.org/wiki/English_languageEnglish 
 https://meta.wikimedia.org/wiki/List_of_Wikipediasother Wikipedias are available 
 https://ar.wikipedia.org/wiki/
 https://de.wikipedia.org/wiki/Deutsch 

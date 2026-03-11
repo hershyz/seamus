@@ -36,7 +36,7 @@ public:
         : in_fd_(in_fd)
         , words(words_fd)
         , links(links_fd)
-        , url(url) {}
+        , url(url) {write_header();}
 
     bool killed() const { return killed_; }
 
@@ -60,8 +60,18 @@ public:
             parse_buf();
             buf.clear();
         }
+        // Mark that this doc is done
+        write_footer();
         words.flush();
         links.flush();
+    }
+
+    void inline write_header() {
+        words.push_back("<doc>", 5);
+    }
+
+    void inline write_footer() {
+        words.push_back("<\\doc>", 6);
     }
 
 private:
@@ -321,9 +331,14 @@ private:
                                 if (p != end && p > a_start) {
                                     if (*a_start == '/') {
                                         // Relative link -- prepend to root URL
-                                        // TODO: need to save the root URL when parsing a page
+                                        size_t full_size = url.size() + (p - a_start);
+                                        char full_link[full_size];
+                                        memcpy(full_link, url.data(), url.size());
+                                        memcpy(full_link + url.size(), a_start, p - a_start);
+                                        links.push_back(full_link, full_size, RETURN_DELIM);
+                                    } else {
+                                        links.push_back(a_start, p - a_start, RETURN_DELIM);
                                     }
-                                    links.push_back(a_start, p - a_start, RETURN_DELIM);
                                     in_a_ = true;
                                 }
                             } else
@@ -432,7 +447,6 @@ private:
             }
 
             // Non-alnum character: push partial word, skip char, track consecutive count
-            // TODO: Decide whether we would prefer to split on these.
             else if (!isalnum((unsigned char) *p)) {
                 non_alnum_run_++;
                 if (non_alnum_run_ >= MAX_CONSECUTIVE_NON_ALNUM) {

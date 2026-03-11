@@ -9,3 +9,5 @@ Handling of plain-text URLS (idk if i think it's worth but David is a fan)
 After finding a non-alnum, correctly discards word. However needs to discard the rest of the word after the non alnum.
 Define a flush_function_t for parser write() instead of using fd (link array will need to flush to a map, not a fd).
 Build per machine crawler manager and let parser have access to it to write its links to its map
+
+David doesn't think it's worth it either.
