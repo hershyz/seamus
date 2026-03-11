@@ -1,144 +1,259 @@
-/Apple 
-/us/shop/goto/storeStore 
-/mac/Mac 
-/ipad/iPad 
-/iphone/iPhone 
-/watch/Watch 
-/apple-vision-pro/Vision 
-/airpods/AirPods 
-/tv-home/TV Home 
-/entertainment/Entertainment 
-/us/shop/goto/buy_accessoriesAccessories 
-https://support.apple.com/?cid=gn-ols-home-hp-tabSupport 
-/us/search
-/us/shop/goto/bag
-/macbook-neo/
-/macbook-neo/Learn more 
-/us/shop/goto/buy_mac/macbook_neoPre order 
-/105/media/us/macbook-neo/2026/eee281c9-06d4-45d9-9a37-ef16ad413279/films/product/macbook-neo-product-tpl-us-2026_16x9.m3u8Watch the film Watch the film MacBook Neo 
-/iphone-17e/
-/iphone-17e/Learn more 
-/us/shop/goto/buy_iphone/iphone_17ePre order 
-/macbook-pro/
-/macbook-pro/Learn more 
-/us/shop/goto/buy_mac/macbook_proPre order 
-/macbook-air/
-/macbook-air/Learn more 
-/us/shop/goto/buy_mac/macbook_airPre order 
-/ipad-air/
-/ipad-air/Learn more 
-/us/shop/goto/buy_ipad/ipad_airPre order 
-/iphone-17-pro/
-/iphone-17-pro/Learn more 
-/us/shop/goto/buy_iphone/iphone_17_proBuy 
-/apple-watch-series-11/
-/apple-watch-series-11/Learn more 
-/us/shop/goto/buy_watch/apple_watch_series_11Buy 
-/us/shop/goto/trade_in
-/us/shop/goto/trade_inGet your estimate 
-/us/shop/goto/buy_iphone/carrier_offers
-/us/shop/goto/buy_iphone/carrier_offersFind your deal 
-/apple-card/
-/apple-card/Learn more 
-https://card.apple.com/apply/application?referrer=cid%3Dapy-200-10000036&start=falseApply now 
-https://wallet.apple.com/apple-card/setup/feature/ccs?referrer=cid%3Dapy-200-10000036Apply now 
-#endless-entertainment-gallery-item-1Item 1 
-#endless-entertainment-gallery-item-2Item 2 
-#endless-entertainment-gallery-item-3Item 3 
-#endless-entertainment-gallery-item-4Item 4 
-#endless-entertainment-gallery-item-5Item 5 
-#endless-entertainment-gallery-item-6Item 6 
-#endless-entertainment-gallery-item-7Item 7 
-#endless-entertainment-gallery-item-8Item 8 
-#endless-entertainment-gallery-item-9Item 9 
-https://tv.apple.com/us/show/monarch-legacy-of-monsters/umc.cmc.62l8x0ixrhyq3yaqa5y8yo7ew?l=en-US?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622Stream now Adventure New season 
-https://tv.apple.com/us/show/the-last-thing-he-told-me/umc.cmc.5dkcy23fuhcdhw1zcmqn10rc5?l=en-US?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622Stream now Mystery A desperate stepmother must piece together the puzzle of her husbands sudden disappearance 
-https://tv.apple.com/us/room/formula-1/uts.room.formula-1?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622F1 on Apple TV Every Grand live and on all in one place all year long 
-https://tv.apple.com/us/show/shrinking/umc.cmc.apzybj6eqf6pzccd97kev7bs?l=en-US?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622Stream now Comedy Getting it together Together 
-https://tv.apple.com/us/channel/mls/tvs.sbd.7000?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622MLS on Apple TV Watch every club every match all season long 
-https://tv.apple.com/us/show/hijack/umc.cmc.1dg08zn0g3zx52hs8npoj5qe3?l=en-US?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622Stream now Thriller Who can you trust when its all on the line 
-https://tv.apple.com/us/movie/eternity/umc.cmc.4dlymcfscta2oo4u1whkzaqpl?l=en-US?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622Stream now Romance Do you believe in love after life 
-https://tv.apple.com/us/show/pluribus/umc.cmc.37axgovs2yozlyh3c2cmwzlza?l=en-US?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622Stream now Drama Happiness is a state of mind 
-https://tv.apple.com/us/movie/f1-the-movie/umc.cmc.3t6dvnnr87zwd4wmvpdx5came?l=en-US?itscg=10000&amp;itsct=atv-apl_hp-stream_now--220622Stream now Action 4 Nominations Including Best Picture 
-https://fitness.apple.com/us/studio-collection/bad-bunny/1658160018?itscg=10000&amp;itsct=afp-apl_hp-watch_now--240326Watch now Bad Bunny 
-https://apps.apple.com/us/app/hello-kitty-island-adventure/id1553505132?itscg=10000&amp;itsct=aa-apl_hp-play_now--240326Play now Hello Kitty Island Adventure 
-https://music.apple.com/us/station/sabrina-carpenter-the-zane-lowe-interview/ra.1837392419?itscg=10000&amp;itsct=am-apl_hp-listen_now--240326Sabrina Carpenter The Zane Lowe Interview Listen now Sabrina Carpenter The Zane Lowe Interview 
-https://fitness.apple.com/us/workout/core-with-gregg/1870919406?itscg=10000&amp;itsct=afp-apl_hp-watch_now--240326Watch now Core with Gregg 
-https://apps.apple.com/us/app/powerwash-simulator/id6477445344?itscg=10000&amp;itsct=aa-apl_hp-play_now--240326Play now PowerWash Simulator 
-https://music.apple.com/us/playlist/a-list-pop/pl.5ee8333dbe944d9f9151e97d92d1ead9?itscg=10000&amp;itsct=am-apl_hp-listen_now--240326A List Pop Listen now A List Pop 
-https://fitness.apple.com/us/studio-collection/black-history-month/1790481637?itscg=10000&amp;itsct=afp-apl_hp-watch_now--240326Watch now Black History Month 
-https://apps.apple.com/us/app/spongebob-patty-pursuit-2/id6472008605?itscg=10000&amp;itsct=aa-apl_hp-play_now--240326Play now SpongeBob Patty Pursuit 2 
-https://music.apple.com/us/playlist/new-music-daily/pl.2b0e6e332fdf4b7a91164da3162127b5?itscg=10000&amp;itsct=am-apl_hp-listen_now--240326New Music Daily Listen now New Music Daily 
-https://support.apple.com/kb/HT209218support apple HT209218 
-/us/shop/goto/storeStore 
-/mac/Mac 
-/ipad/iPad 
-/iphone/iPhone 
-/watch/Watch 
-/apple-vision-pro/Vision 
-/airpods/AirPods 
-/tv-home/TV Home 
-/airtag/AirTag 
-/us/shop/goto/buy_accessoriesAccessories 
-/us/shop/goto/giftcardsGift Cards 
-/wallet/Wallet 
-/apple-card/Apple Card 
-/apple-pay/Apple Pay 
-/apple-cash/Apple Cash 
-https://account.apple.com/Manage Your Apple Account 
-/us/shop/goto/accountApple Store Account 
-https://www.icloud.comiCloud com 
-/apple-one/Apple One 
-/apple-tv/Apple TV 
-/apple-music/Apple Music 
-/apple-arcade/Apple Arcade 
-/apple-fitness-plus/Apple 
-/apple-news/Apple 
-/apple-podcasts/Apple Podcasts 
-/apple-books/Apple Books 
-/app-store/App Store 
-/retail/Find a Store 
-/retail/geniusbar/Genius Bar 
-/today/Today at Apple 
-/today/groups/Group Reservations 
-/today/camp/Apple Camp 
-https://apps.apple.com/us/app/apple-store/id375380948Apple Store App 
-/us/shop/goto/special_dealsCertified Refurbished 
-/us/shop/goto/trade_inApple Trade In 
-/us/shop/goto/payment_planFinancing 
-/us/shop/goto/buy_iphone/carrier_offersCarrier Deals at Apple 
-/us/shop/goto/order/listOrder Status 
-/us/shop/goto/helpShopping Help 
-/business/Apple and Business 
-/retail/business/Shop for Business 
-/education/Apple and Education 
-/education/k12/how-to-buy/Shop for K 12 
-/us/shop/goto/educationroutingShop for College 
-/healthcare/Apple and Healthcare 
-/government/Apple and Government 
-/us/shop/goto/eppstore/veteransandmilitaryShop for Veterans and Military 
-/us_epp_67909/storeShop for State and Local Employees 
-/us_epp_55499/storeShop for Federal Employees 
-/accessibility/Accessibility 
-/education-initiative/Education 
-/environment/Environment 
-/diversity/Inclusion and Diversity 
-/privacy/Privacy 
-/racial-equity-justice-initiative/Racial Equity and Justice 
-/supply-chain/Supply Chain Innovation 
-/newsroom/Newsroom 
-/leadership/Apple Leadership 
-/careers/us/Career Opportunities 
-https://investor.apple.com/Investors 
-/compliance/Ethics Compliance 
-/apple-events/Events 
-/contact/Contact Apple 
-/retail/Find an Apple Store 
-https://locate.apple.com/other retailer 
-tel:1-800-692-77531 800 MY APPLE 
-/choose-country-region/United States 
-/legal/privacy/Privacy Policy 
-/legal/internet-services/terms/site.htmlTerms of Use 
-/us/shop/goto/help/sales_refundsSales and Refunds 
-/legal/Legal 
-/sitemap/Site Map 
+#bodyContentJump to content 
+/wiki/Main_PageMain page 
+/wiki/Wikipedia:ContentsContents 
+/wiki/Portal:Current_eventsCurrent events 
+/wiki/Special:RandomRandom article 
+/wiki/Wikipedia:AboutAbout Wikipedia 
+//en.wikipedia.org/wiki/Wikipedia:Contact_usContact us 
+/wiki/Help:ContentsHelp 
+/wiki/Help:IntroductionLearn to edit 
+/wiki/Wikipedia:Community_portalCommunity portal 
+/wiki/Special:RecentChangesRecent changes 
+/wiki/Wikipedia:File_upload_wizardUpload file 
+/wiki/Special:SpecialPagesSpecial pages 
+/wiki/Main_Page
+/wiki/Special:SearchSearch 
+https://donate.wikimedia.org/?wmf_source=donate&amp;wmf_medium=sidebar&amp;wmf_campaign=en.wikipedia.org&amp;uselang=enDonate 
+/w/index.php?title=Special:CreateAccount&amp;returnto=Main+PageCreate account 
+/w/index.php?title=Special:UserLogin&amp;returnto=Main+PageLog in 
+https://donate.wikimedia.org/?wmf_source=donate&amp;wmf_medium=sidebar&amp;wmf_campaign=en.wikipedia.org&amp;uselang=enDonate 
+/w/index.php?title=Special:CreateAccount&amp;returnto=Main+PageCreate account 
+/w/index.php?title=Special:UserLogin&amp;returnto=Main+PageLog in 
+/wiki/Main_PageMain Page 
+/wiki/Talk:Main_PageTalk 
+/wiki/Main_PageRead 
+/w/index.php?title=Main_Page&amp;action=editView source 
+/w/index.php?title=Main_Page&amp;action=historyView history 
+/wiki/Main_PageRead 
+/w/index.php?title=Main_Page&amp;action=editView source 
+/w/index.php?title=Main_Page&amp;action=historyView history 
+/wiki/Special:WhatLinksHere/Main_PageWhat links here 
+/wiki/Special:RecentChangesLinked/Main_PageRelated changes 
+//en.wikipedia.org/wiki/Wikipedia:File_Upload_WizardUpload file 
+/w/index.php?title=Main_Page&amp;oldid=1336841542Permanent link 
+/w/index.php?title=Main_Page&amp;action=infoPage information 
+/w/index.php?title=Special:CiteThisPage&amp;page=Main_Page&amp;id=1336841542&amp;wpFormIdentifier=titleformCite this page 
+/w/index.php?title=Special:UrlShortener&amp;url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMain_PageGet shortened URL 
+/w/index.php?title=Special:DownloadAsPdf&amp;page=Main_Page&amp;action=show-download-screenDownload as PDF 
+/w/index.php?title=Main_Page&amp;printable=yesPrintable version 
+https://commons.wikimedia.org/wiki/Main_PageWikimedia Commons 
+https://foundation.wikimedia.org/wiki/HomeWikimedia Foundation 
+https://www.mediawiki.org/wiki/MediaWikiMediaWiki 
+https://meta.wikimedia.org/wiki/Main_PageMeta Wiki 
+https://outreach.wikimedia.org/wiki/Main_PageWikimedia Outreach 
+https://wikisource.org/wiki/Main_PageMultilingual Wikisource 
+https://species.wikimedia.org/wiki/Main_PageWikispecies 
+https://en.wikibooks.org/wiki/Main_PageWikibooks 
+https://www.wikidata.org/wiki/Wikidata:Main_PageWikidata 
+https://www.wikifunctions.org/wiki/Wikifunctions:Main_PageWikifunctions 
+https://wikimania.wikimedia.org/wiki/WikimaniaWikimania 
+https://en.wikinews.org/wiki/Main_PageWikinews 
+https://en.wikiquote.org/wiki/Main_PageWikiquote 
+https://en.wikisource.org/wiki/Main_PageWikisource 
+https://en.wikiversity.org/wiki/Wikiversity:Main_PageWikiversity 
+https://en.wikivoyage.org/wiki/Main_PageWikivoyage 
+https://en.wiktionary.org/wiki/Wiktionary:Main_PageWiktionary 
+https://www.wikidata.org/wiki/Special:EntityPage/Q5296Wikidata item 
+/wiki/WikipediaWikipedia 
+/wiki/Free_contentfree 
+/wiki/Encyclopediaencyclopedia 
+/wiki/Help:Introduction_to_Wikipediaanyone can edit 
+/wiki/Special:Statistics285 731 
+/wiki/Special:Statistics7 149 517 
+/wiki/English_languageEnglish 
+/wiki/File:1871_FA_Cup.jpg
+/wiki/1876_FA_Cup_final1876 FA Cup final 
+/wiki/Association_footballassociation football 
+/wiki/Wanderers_F.C.Wanderers F C 
+/wiki/Old_Etonians_F.C.Old Etonians F C 
+/wiki/The_OvalKennington Oval 
+/wiki/FA_CupFA Cup 
+/wiki/FA_Cup_finalFA Cup final 
+/wiki/Replay_(sports)#Association_footballreplay 
+/wiki/John_Hawley_EdwardsJohn Hawley Edwards 
+/wiki/Alexander_BonsorAlexander Bonsor 
+/wiki/Charles_WollastonCharles Wollaston 
+/wiki/Thomas_Bridges_HughesThomas Bridges Hughes 
+/wiki/1876_FA_Cup_finalThis article 
+/wiki/Wikipedia:Featured_topicsfeatured topic 
+/wiki/Wikipedia:Featured_topics/Wanderers_F.C.Wanderers F C 
+/wiki/Duckport_CanalDuckport Canal 
+/wiki/Zungeni_Mountain_skirmishZungeni Mountain skirmish 
+/wiki/Luisa_CapetilloLuisa Capetillo 
+/wiki/Wikipedia:Today%27s_featured_article/March_2026Archive 
+https://lists.wikimedia.org/postorius/lists/daily-article-l.lists.wikimedia.org/By email 
+/wiki/Wikipedia:Featured_articles_(linked_from_TFAfooter)More featured articles 
+/wiki/Wikipedia:About_Today%27s_featured_articleAbout 
+/wiki/File:Populus_Hotel_Construction_Denver_Colorado_2024_(cropped).jpg
+/wiki/Populus_DenverPopulus Denver 
+/wiki/DalmatiusDalmatius 
+/wiki/Constantinian_dynastyConstantinian dynasty 
+/wiki/1973_Flores_cyclonethe deadliest cyclone in the Southern Hemisphere 
+/wiki/Israel_KeyesIsrael Keyes 
+/wiki/Drill_DozerDrill Dozer 
+/wiki/Swiss_rollroll cakes 
+/wiki/Harold_OrlobHarold Orlob 
+/wiki/The_Mosquito_BowlThe Mosquito Bowl 
+/wiki/Battle_of_Okinawabattle of Okinawa 
+/wiki/Adelaide_IronsideAdelaide Ironside 
+/wiki/Giuseppe_GaribaldiGiuseppe Garibaldi 
+/wiki/High_Bridge_(New_York_City)High Bridge 
+/wiki/Wikipedia:Recent_additionsArchive 
+/wiki/Help:Your_first_articleStart a new article 
+/wiki/Template_talk:Did_you_knowNominate an article 
+/wiki/File:Ayatollah_Mojtaba_Khamenei,_March_8,_2026_(cropped).jpg
+/wiki/Mojtaba_KhameneiMojtaba Khamenei 
+/wiki/2026_Iranian_Supreme_Leader_electionis elected 
+/wiki/Supreme_Leader_of_IranSupreme Leader of Iran 
+/wiki/Assassination_of_Ali_Khameneithe assassination 
+/wiki/Ali_KhameneiAli Khamenei 
+/wiki/2026_Kenya_floodsFlooding 
+/wiki/2026_Winter_ParalympicsThe Winter Paralympics 
+/wiki/2026_Winter_Paralympics_opening_ceremonyopen 
+/wiki/List_of_Iranian_officials_killed_during_the_2026_Iran_warkilling senior officials 
+/wiki/2026_Iran_wara wider war 
+/wiki/Lockheed_C-130_HerculesLockheed C 130 Hercules 
+/wiki/Bolivian_Air_ForceBolivian Air Force 
+/wiki/2026_Bolivian_Air_Force_Lockheed_C-130_crashcrashes into a road 
+/wiki/El_AltoEl Alto 
+/wiki/Russo-Ukrainian_war_(2022%E2%80%93present)Russo Ukrainian war 
+/wiki/Timeline_of_the_Russo-Ukrainian_war_(1_January_2026_%E2%80%93_present)timeline 
+/wiki/Sudanese_civil_war_(2023%E2%80%93present)Sudanese civil war 
+/wiki/Timeline_of_the_Sudanese_civil_war_(2026)timeline 
+/wiki/Deaths_in_2026Recent deaths 
+/wiki/Andrew_Watson_(bishop)Andrew Watson 
+/wiki/Alvin_GreeneAlvin Greene 
+/wiki/Soham_murders#Ian_HuntleyIan Huntley 
+/wiki/Bernard_LafayetteBernard Lafayette 
+/wiki/K%C3%A4the_Menzel-Jordanthe Menzel Jordan 
+/wiki/Song_PingSong Ping 
+/wiki/Portal:Current_eventsMore current events 
+/wiki/Wikipedia:In_the_news/CandidatesNominate an article 
+/wiki/March_11March 11 
+/wiki/File:Rigoletto_premiere_poster-res.jpg
+/wiki/18511851 
+/wiki/RigolettoRigoletto 
+/wiki/La_FeniceLa Fenice 
+/wiki/19931993 
+/wiki/United_States_SenateU S Senate 
+/wiki/Janet_RenoJanet Reno 
+/wiki/United_States_Attorney_GeneralUnited States attorney general 
+/wiki/20072007 
+/wiki/2007_Georgia_helicopter_incidenta helicopter attack 
+/wiki/Kodori_ValleyKodori Valley 
+/wiki/AbkhaziaAbkhazia 
+/wiki/20102010 
+/wiki/Sebasti%C3%A1n_Pi%C3%B1eran era 
+/wiki/2010_Pichilemu_earthquakesearthquakes 
+/wiki/Seismic_magnitude_scales#MwM w 
+/wiki/O%27Higgins_RegionOHiggins Region 
+/wiki/PichilemuPichilemu 
+/wiki/20202020 
+/wiki/World_Health_OrganizationWorld Health Organization WHO 
+/wiki/COVID-19COVID 19 
+/wiki/SARS-CoV-2virus 
+/wiki/Epidemicepidemic 
+/wiki/COVID-19_pandemicpandemic 
+/wiki/Mary_of_WoodstockMary of Woodstock 
+/wiki/Stanis%C5%82aw_Koniecpolskiaw Koniecpolski 
+/wiki/Ralph_AbernathyRalph Abernathy 
+/wiki/Gladys_Pearl_BakerGladys Pearl Baker 
+/wiki/March_10March 10 
+/wiki/March_11March 11 
+/wiki/March_12March 12 
+/wiki/Wikipedia:Selected_anniversaries/MarchArchive 
+https://lists.wikimedia.org/postorius/lists/daily-article-l.lists.wikimedia.org/By email 
+/wiki/List_of_days_of_the_yearList of days of the year 
+/wiki/Wikipedia:Selected_anniversariesAbout 
+/wiki/File:Wembley_Stadium_Twin_Towers.jpg
+/wiki/Venues_of_the_1948_Summer_OlympicsTwenty five venues hosted the events 
+/wiki/1948_Summer_Olympics1948 Summer Olympics 
+/wiki/Olympic_GamesOlympic Games 
+/wiki/Gymnasticsgymnastics 
+/wiki/Swimming_(sport)swimming 
+/wiki/Water_polowater polo 
+/wiki/Rationing_in_the_United_KingdomUnited Kingdom was still under rationing 
+/wiki/Olympic_VillageOlympic Village 
+/wiki/Wembley_Stadium_(1923)Empire Stadium 
+/wiki/Earls_Court_Exhibition_CentreEarls Court Exhibition Centre 
+/wiki/Wembley_ArenaWembley Arena 
+/wiki/Venues_of_the_2012_Summer_Olympics_and_Paralympicsvenues of the 2012 Summer Olympics 
+/wiki/Venues_of_the_1948_Summer_OlympicsFull list 
+/wiki/List_of_Volition_gamesVolition games 
+/wiki/List_of_Batwoman_episodesBatwoman episodes 
+/wiki/List_of_NFL_annual_passing_touchdowns_leadersNFL annual passing touchdowns leaders 
+/wiki/Wikipedia:Today%27s_featured_list/March_2026Archive 
+/wiki/Wikipedia:Featured_listsMore featured lists 
+/wiki/File:05june-rapiddow-wide.gif
+/wiki/Mobile_radar_observation_of_tornadoesMobile radar observation of tornadoes 
+/wiki/Weather_radarweather radar 
+/wiki/Tornadotornadoes 
+/wiki/Atmospheric_convectionconvective 
+/wiki/Mesonetmesonets 
+/wiki/Lockheed_P-3_OrionLockheed P 3 Orion 
+/wiki/Doppler_on_WheelsDoppler on Wheels 
+/wiki/VORTEX_projectsVORTEX1 
+/wiki/RaXPolRaXPol 
+/wiki/University_of_OklahomaUniversity of Oklahoma 
+/wiki/National_Severe_Storms_LaboratoryNational Severe Storms Laboratory 
+/wiki/Advanced_Stirling_radioisotope_generator#Flight_proposalsHORUS 
+/wiki/Phased_arrayphased array 
+/wiki/Hook_echohook echo 
+/wiki/Mesocyclonemesocyclone 
+/wiki/2009_Goshen_County_tornado2009 Goshen County tornado 
+/wiki/Tornado_debris_signaturereflectivity data 
+/wiki/Joshua_WurmanJoshua Wurman 
+/wiki/Template:POTD/2026-03-10Plumed whistling duck 
+/wiki/Template:POTD/2026-03-09Game com 
+/wiki/Template:POTD/2026-03-08Lilly Walleni 
+/wiki/Wikipedia:Picture_of_the_day/ArchiveArchive 
+/wiki/Wikipedia:Featured_picturesMore featured pictures 
+/wiki/Wikipedia:Community_portalCommunity portal 
+/wiki/Wikipedia:Village_pumpVillage pump 
+/wiki/Wikipedia:NewsSite news 
+/wiki/Wikipedia:TeahouseTeahouse 
+/wiki/Wikipedia:Help_deskHelp desk 
+/wiki/Wikipedia:Reference_deskReference desk 
+/wiki/Wikipedia:Contents/PortalsContent portals 
+/wiki/Wikimedia_FoundationWikimedia Foundation 
+https://wikimediafoundation.org/our-work/wikimedia-projects/projects 
+https://commons.wikimedia.org/wiki/
+https://commons.wikimedia.org/wiki/Commons 
+https://www.mediawiki.org/wiki/
+https://www.mediawiki.org/wiki/MediaWiki 
+https://meta.wikimedia.org/wiki/
+https://meta.wikimedia.org/wiki/Meta Wiki 
+https://en.wikibooks.org/wiki/
+https://en.wikibooks.org/wiki/Wikibooks 
+https://www.wikidata.org/wiki/
+https://www.wikidata.org/wiki/Wikidata 
+https://en.wikinews.org/wiki/
+https://en.wikinews.org/wiki/Wikinews 
+https://en.wikiquote.org/wiki/
+https://en.wikiquote.org/wiki/Wikiquote 
+https://en.wikisource.org/wiki/
+https://en.wikisource.org/wiki/Wikisource 
+https://species.wikimedia.org/wiki/
+https://species.wikimedia.org/wiki/Wikispecies 
+https://en.wikiversity.org/wiki/
+https://en.wikiversity.org/wiki/Wikiversity 
+https://en.wikivoyage.org/wiki/
+https://en.wikivoyage.org/wiki/Wikivoyage 
+https://en.wiktionary.org/wiki/
+https://en.wiktionary.org/wiki/
+https://en.wiktionary.org/wiki/Wiktionary 
+/wiki/English_languageEnglish 
+https://meta.wikimedia.org/wiki/List_of_Wikipediasother Wikipedias are available 
+https://ar.wikipedia.org/wiki/
+https://de.wikipedia.org/wiki/Deutsch 
+https://es.wikipedia.org/wiki/ol 
+https://fa.wikipedia.org/wiki/
+https://fr.wikipedia.org/wiki/ais 
+https://it.wikipedia.org/wiki/Italiano 
+https://nl.wikipedia.org/wiki/Nederlands 
+https://ja.wikipedia.org/wiki/
+https://pl.wikipedia.org/wiki/Polski 
+https://pt.wikipedia.org/wiki/s 
+https://ru.wikipedia.org/wiki/
+https://sv.wikipedia.org/wiki/Svenska 
+https://uk.wikipedia.org/wiki/https://alt.wikipedia.org/wiki/%D0%A2%D3%A7%D1%81_%D0%B1%D3%B1%D0%BA

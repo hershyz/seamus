@@ -6,31 +6,37 @@
 #include <cstring>
 
 #include "../../lib/buffer.h"
+#include "../../lib/string.h"
+#include "../../lib/utils.h"
 #include "HtmlTags.h"
 #include "word_array.h"
 
 
 class HtmlParser {
 public:
-    static constexpr int MAX_CONSECUTIVE_NON_ALNUM = 5;
-    static constexpr char ANCHOR_DELIM = '\r';
+    static constexpr int MAX_CONSECUTIVE_NON_ALNUM = 15;
+    static constexpr char RETURN_DELIM = '\r';
     static constexpr char NULL_DELIM = '\0';
     static constexpr char SPACE_DELIM = ' ';
     static constexpr int MAX_LINK_MEMORY = 8 * 1024;
+    static constexpr int MAX_TITLELEN_MEMORY = 8 * 1024; // Just copying value for link memory -- no logic behind this
     static constexpr int MAX_WORD_MEMORY = 32 * 1024;
 
     int in_fd_;
+    string url;
     buffer buf;
     word_array<MAX_WORD_MEMORY> words;
     word_array<MAX_LINK_MEMORY> links;
+    word_array<MAX_TITLELEN_MEMORY> title_lengths;
     static constexpr size_t MAX_BASE_LEN = 256;
     char base[MAX_BASE_LEN] = {};
     size_t base_len = 0;
 
-    HtmlParser(int in_fd, int words_fd, int links_fd)
+    HtmlParser(int in_fd, int words_fd, int links_fd, const char* url)
         : in_fd_(in_fd)
         , words(words_fd)
-        , links(links_fd) {}
+        , links(links_fd)
+        , url(url) {}
 
     bool killed() const { return killed_; }
 
@@ -182,6 +188,7 @@ private:
         const char *end = buffer + length;
         const char *p = buffer;
         const char *word_start = p;
+        uint32_t num_words = 0;
 
         // Parse <length> bytes starting at <buffer>
         while (p < end) {
@@ -191,6 +198,7 @@ private:
                     size_t word_len = p - word_start;
                     if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
                     words.push_back(word_start, word_len);
+                    num_words++;
                     word_start = ++p;
                 } else {   // Not tracking a word, just continue
                     p++;
@@ -224,6 +232,7 @@ private:
                         if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
 
                         words.push_back(word_start, word_len);
+                        num_words++;
                     }
                 }
 
@@ -234,6 +243,7 @@ private:
                         if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
 
                         words.push_back(word_start, word_len);
+                        num_words++;
                         word_start = ++p;
                     } else if (p < end)
                         p++;
@@ -245,6 +255,8 @@ private:
                         words.push_back("<title>", 7);
                     } else {
                         words.push_back("<\\title>", 8);
+                        title_lengths.push_back(url.data(), url.size(), RETURN_DELIM);
+                        title_lengths.push_back(string(num_words).data(), string(num_words).size());
                     }
 
                     while (p < end && *p != '>') p++;
@@ -311,7 +323,7 @@ private:
                                         // Relative link -- prepend to root URL
                                         // TODO: need to save the root URL when parsing a page
                                     }
-                                    links.push_back(a_start, p - a_start, ANCHOR_DELIM);
+                                    links.push_back(a_start, p - a_start, RETURN_DELIM);
                                     in_a_ = true;
                                 }
                             } else
@@ -353,7 +365,7 @@ private:
                             const char *embed_start = (p += 5);
                             while (p < end && *p != '"') p++;
 
-                            links.push_back(embed_start, p - embed_start, ANCHOR_DELIM);
+                            links.push_back(embed_start, p - embed_start, RETURN_DELIM);
                         } else
                             p++;
                     }
@@ -387,6 +399,7 @@ private:
                         size_t word_len = p - word_start;
                         if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
                         words.push_back(word_start, word_len);
+                        num_words++;
                     }
                 }
                 // Skip past the ';' or until space/tag
@@ -412,6 +425,7 @@ private:
                 if (p > word_start) {
                     words.push_back(word_start, p - word_start);
                     if (in_a_) links.push_back(word_start, p - word_start, SPACE_DELIM);
+                    num_words++;
                 }
                 p += 2;
                 word_start = p;
