@@ -7,9 +7,11 @@
 
 void init_index() {
     // Find the latest chunk ID
+    file_lock.lock();
     if (chunk == 0) {
         while (file_exists(string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk), ".txt"))) chunk++;
     }
+    file_lock.unlock();
 }
 
 void IndexChunk::persist() {
@@ -204,7 +206,9 @@ void IndexChunk::persist() {
     
     fclose(fd);
 
+    file_lock.lock();
     chunk++;
+    file_lock.unlock();
 }
 
 vector<string> IndexChunk::sort_entries() {

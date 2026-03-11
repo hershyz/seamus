@@ -14,3 +14,9 @@ cc_library(
         "//lib:vector"
     ]
 )
+
+cc_binary(
+    name = "index",
+    srcs = ["main.cpp"],
+    deps = [":index_lib"]
+)

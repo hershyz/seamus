@@ -1,4 +1,5 @@
 #include <mutex>
+#include "lib/deque.h"
 #include "lib/string.h"
 #include "lib/unordered_map.h"
 #include "lib/vector.h"
@@ -30,9 +31,6 @@ public:
     void persist();
 };
 
+uint32_t WORKER_NUMBER;
 uint32_t chunk = 0;
-
-// TODO: This needs to be defined globally on bootup (defining here for now)
-const uint32_t WORKER_NUMBER = 0;
-
 void init_index();
