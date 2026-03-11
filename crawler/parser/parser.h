@@ -19,7 +19,7 @@ public:
     static constexpr char NULL_DELIM = '\0';
     static constexpr char SPACE_DELIM = ' ';
     static constexpr int MAX_LINK_MEMORY = 8 * 1024;
-    static constexpr int MAX_TITLELEN_MEMORY = 8 * 1024; // Just copying value for link memory -- no logic behind this
+    static constexpr int MAX_TITLELEN_MEMORY = 8 * 1024;   // Just copying value for link memory -- no logic behind this
     static constexpr int MAX_WORD_MEMORY = 32 * 1024;
 
     int in_fd_;
@@ -32,11 +32,13 @@ public:
     char base[MAX_BASE_LEN] = {};
     size_t base_len = 0;
 
-    HtmlParser(int in_fd, int words_fd, int links_fd, const char* url)
+    HtmlParser(int in_fd, int words_fd, int links_fd, const char *url)
         : in_fd_(in_fd)
         , words(words_fd)
         , links(links_fd)
-        , url(url) {write_header();}
+        , url(url) {
+        write_header();
+    }
 
     bool killed() const { return killed_; }
 
@@ -71,9 +73,7 @@ public:
         words.push_back(url.data(), url.size());
     }
 
-    void inline write_footer() {
-        words.push_back("<\\doc>", 6);
-    }
+    void inline write_footer() { words.push_back("<\\doc>", 6); }
 
 private:
     // Internal parse that operates on the current buffer contents
