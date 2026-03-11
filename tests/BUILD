@@ -166,6 +166,7 @@ cc_test(
     deps = [
         "//lib:consts",
         "//lib:utils",
+        "//url_store:url_store",
     ],
 )
 

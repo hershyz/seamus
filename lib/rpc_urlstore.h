@@ -95,14 +95,14 @@ inline bool send_batch_urlstore_update(const string& host, uint16_t port, const 
         off += sizeof(uint32_t);
 
         // seed_list_url_hops
-        uint32_t url_hops = htonl(req.seed_list_url_hops);
-        std::memcpy(buf + off, &url_hops, sizeof(uint32_t));
-        off += sizeof(uint32_t);
+        uint16_t url_hops = htons(req.seed_list_url_hops);
+        std::memcpy(buf + off, &url_hops, sizeof(uint16_t));
+        off += sizeof(uint16_t);
 
         // seed_list_domain_hops
-        uint32_t domain_hops = htonl(req.seed_list_domain_hops);
-        std::memcpy(buf + off, &domain_hops, sizeof(uint32_t));
-        off += sizeof(uint32_t);
+        uint16_t domain_hops = htons(req.seed_list_domain_hops);
+        std::memcpy(buf + off, &domain_hops, sizeof(uint16_t));
+        off += sizeof(uint16_t);
     }
 
     bool ok = send_buffer(host, port, buf, total);

@@ -6,9 +6,11 @@
 #include <cstdint>
 #include <thread>
 
+#include <iostream>
+
 
 struct UserAnchorData {
-    const string* anchor_text;
+    string* anchor_text;
     uint32_t freq;
 };
 
@@ -17,8 +19,9 @@ private:
     unordered_map<string, UrlData> url_data;
     vector<string> anchor_to_id; // anchor text to corresponding id (index)
 
-    const UrlData* findUrlData(const string& url) const;
-    UrlData* findUrlData(const string& url);
+    const UrlData* findUrlData(string& url) const;
+    UrlData* findUrlData(string& url);
+    void addAnchorFreq(vector<AnchorData>& freqs, uint32_t anchor_id);
 
     RPCListener* rpc_listener;      // Listener for client requests
     std::thread listener_thread;    // Thread running the listener loop
@@ -33,12 +36,12 @@ public:
     // to read urlStore from disk after a crash, each worker thread will read from its corresponding files and update it's urlstore object accordingly
     static void readFromFile(UrlStore& url_store, const int worker_number);
 
-    bool addUrl(const string& url, const vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t domain_distance, const uint16_t eot, const uint16_t eod, const uint32_t num_encountered);
-    bool updateUrl(const string& url, const vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t domain_distance, const uint32_t num_encountered);
+    bool addUrl(string& url, vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t domain_distance, const uint16_t eot, const uint16_t eod, const uint32_t num_encountered);
+    bool updateUrl(string& url, vector<string>& anchor_texts, const uint16_t seed_distance, const uint16_t domain_distance, const uint32_t num_encountered);
 
-    uint32_t findAnchorId(const string& anchor_text);
+    uint32_t findAnchorId(string& anchor_text);
 
-    vector<UserAnchorData> getUrlAnchorInfo(const string& url) {
+    vector<UserAnchorData> getUrlAnchorInfo(string& url) {
         const UrlData* it = findUrlData(url);
         if (it == nullptr) return {};
         if (it->anchor_freqs.empty()) return {};
@@ -53,26 +56,26 @@ public:
     }
 
 
-    uint32_t getUrlNumEncountered(const string& url) {
+    uint32_t getUrlNumEncountered(string& url) {
         const UrlData* it = findUrlData(url);
         if (it == nullptr) return 0;
         return it->num_encountered;
     }
 
 
-    uint16_t getUrlSeedDistance(const string& url) {
+    uint16_t getUrlSeedDistance(string& url) {
         const UrlData* it = findUrlData(url);
         return it ? it->seed_distance : UINT16_MAX;
     }
 
 
-    bool inTitle(const string& url, uint16_t word_pos) {
+    bool inTitle(string& url, uint16_t word_pos) {
         const UrlData* it = findUrlData(url);
         return it ? word_pos < it->eot : false;
     }
 
 
-    bool inDescription(const string& url, uint16_t word_pos) {
+    bool inDescription(string& url, uint16_t word_pos) {
         const UrlData* it = findUrlData(url);
         return it ? it->eot <= word_pos && word_pos < it->eod : false;
     }
