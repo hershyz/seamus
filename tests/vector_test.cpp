@@ -1,5 +1,6 @@
-#include "../lib/vector.h"
+#include "lib/vector.h"
 #include <cassert>
+#include "lib/string.h"
 
 // Test default constructor
 void test_default_constructor()
@@ -291,6 +292,137 @@ void test_capacity_growth()
     }
 }
 
+
+// Tests with custom string
+
+void test_vector_empty() {
+    vector<string> vec;
+    assert(vec.size() == 0);
+    assert(vec.capacity() == 0);
+    assert(vec.empty() == true);
+}
+
+void test_vector_push_back_rvalue() {
+    vector<string> vec;
+
+    // Pushing a temporary (rvalue). Should invoke push_back(T&&)
+    vec.push_back(string("apple"));
+
+    assert(vec.size() == 1);
+    assert(vec[0] == "apple");
+}
+
+void test_vector_reallocation_move_safety() {
+    vector<string> vec;
+
+    // Push enough elements to force multiple reallocations.
+    // If realloc_() accidentally copies instead of moving,
+    // the compiler will throw a "deleted function" error here.
+    const int num_elements = 50;
+    for (int i = 0; i < num_elements; ++i) {
+        // Mix of short strings (SSO) and long strings (Heap)
+        if (i % 2 == 0) {
+            vec.push_back(string("short"));
+        } else {
+            vec.push_back(string("this_is_a_very_long_heap_string"));
+        }
+    }
+
+    assert(vec.size() == num_elements);
+    assert(vec.capacity() >= num_elements); // Ensure it grew
+
+    // Verify data integrity after all those memory moves
+    assert(vec[0] == "short");
+    assert(vec[1] == "this_is_a_very_long_heap_string");
+    assert(vec[49] == "this_is_a_very_long_heap_string");
+}
+
+void test_vector_pop_back() {
+    vector<string> vec;
+    vec.push_back(string("first"));
+    vec.push_back(string("second"));
+
+    assert(vec.size() == 2);
+
+    // Should call the destructor of "second"
+    vec.pop_back();
+
+    assert(vec.size() == 1);
+    assert(vec.back() == "first");
+}
+
+void test_vector_move_constructor() {
+    vector<string> v1;
+    v1.push_back(string("hello"));
+    v1.push_back(string("world"));
+
+    // Steal v1's pointers
+    vector<string> v2(move(v1));
+
+    assert(v2.size() == 2);
+    assert(v2[0] == "hello");
+    assert(v2[1] == "world");
+
+    // v1 should be completely gutted
+    assert(v1.size() == 0);
+    assert(v1.capacity() == 0);
+}
+
+void test_vector_move_assignment() {
+    vector<string> v1;
+    v1.push_back(string("data"));
+
+    vector<string> v2;
+    v2.push_back(string("to_be_overwritten"));
+
+    // v2 should destroy its own contents, then steal v1's pointers
+    v2 = move(v1);
+
+    assert(v2.size() == 1);
+    assert(v2[0] == "data");
+    assert(v1.size() == 0);
+}
+
+void test_vector_iteration() {
+    vector<string> vec;
+    vec.push_back(string("a"));
+    vec.push_back(string("b"));
+    vec.push_back(string("c"));
+
+    int count = 0;
+    // Testing begin() and end()
+    for (auto it = vec.begin(); it != vec.end(); ++it) {
+        count++;
+    }
+    assert(count == 3);
+}
+
+void test_vector_with_default_constructible_types() {
+    // Because your `string` class has NO default constructor and NO copy constructor,
+    // methods like resize() or the copy constructor will fail to compile for vector<string>.
+    // We test those methods here using `int` to ensure the vector logic is sound.
+
+    // Test fill constructor
+    vector<int> v1(5, 42);
+    assert(v1.size() == 5);
+    assert(v1[4] == 42);
+
+    // Test resize (growing)
+    v1.resize(10);
+    assert(v1.size() == 10);
+    assert(v1[9] == 0); // Default constructed int is 0
+
+    // Test resize (shrinking)
+    v1.resize(3);
+    assert(v1.size() == 3);
+    assert(v1[2] == 42);
+
+    // Test copy constructor
+    vector<int> v2(v1);
+    assert(v2.size() == 3);
+    assert(v2[0] == 42);
+}
+
 int main()
 {
     test_default_constructor();
@@ -308,6 +440,16 @@ int main()
     test_with_structs();
     test_edge_cases();
     test_capacity_growth();
+
+    // Tests with custom string
+    test_vector_empty();
+    test_vector_push_back_rvalue();
+    test_vector_reallocation_move_safety();
+    test_vector_pop_back();
+    test_vector_move_constructor();
+    test_vector_move_assignment();
+    test_vector_iteration();
+    test_vector_with_default_constructible_types();
 
     // If all tests pass, program exits normally
     return 0;

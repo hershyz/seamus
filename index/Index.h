@@ -1,6 +1,8 @@
-#include "../lib/vector.h"
-#include "../lib/string.h"
-#include "../lib/unordered_map.h"
+#include <mutex>
+#include "lib/deque.h"
+#include "lib/string.h"
+#include "lib/unordered_map.h"
+#include "lib/vector.h"
 
 // Note that both documents and locations are 1-indexed (so that 0 can be used as a flag)
 
@@ -18,6 +20,7 @@ class IndexChunk {
 private:
     unordered_map<string, postings> index;
     vector<string> urls;
+    std::mutex doc_lock_;
     uint32_t curr_doc_;
 
     vector<string> sort_entries();
@@ -28,9 +31,6 @@ public:
     void persist();
 };
 
+uint32_t WORKER_NUMBER;
 uint32_t chunk = 0;
-
-// TODO: This needs to be defined globally on bootup (defining here for now)
-const uint32_t WORKER_NUMBER = 0;
-
-IndexChunk init_index();
+void init_index();

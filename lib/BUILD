@@ -11,29 +11,10 @@ cc_library(
 )
 
 cc_library(
-    name = "mutex",
-    hdrs = ["mutex.h"],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "condition_variable",
-    hdrs = ["condition_variable.h"],
-    visibility = ["//visibility:public"],
-    deps = [":mutex"],
-)
-
-cc_library(
-    name = "lock_guard",
-    hdrs = ["lock_guard.h"],
-    visibility = ["//visibility:public"],
-    deps = [":mutex"],
-)
-
-cc_library(
     name = "vector",
     hdrs = ["vector.h"],
     visibility = ["//visibility:public"],
+    deps = [":utils"],
 )
 
 cc_library(
@@ -48,8 +29,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":utils",
-        ":vector"
-    ]
+        ":vector",
+    ],
 )
 
 cc_library(
@@ -75,7 +56,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":string",
-        ":vector",
         ":utils",
     ],
 )
@@ -84,7 +64,7 @@ cc_library(
     name = "utf8",
     hdrs = ["utf8.h"],
     visibility = ["//visibility:public"],
-    deps = []
+    deps = [],
 )
 
 cc_library(
@@ -92,8 +72,8 @@ cc_library(
     hdrs = ["utils.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":string", 
-        ":consts"
+        ":consts",
+        ":string",
     ],
 )
 
@@ -115,7 +95,11 @@ cc_library(
     name = "rpc_urlstore",
     hdrs = ["rpc_urlstore.h"],
     visibility = ["//visibility:public"],
-    deps = [":string", ":vector", ":rpc_common"],
+    deps = [
+        ":rpc_common",
+        ":string",
+        ":vector",
+    ],
 )
 
 cc_library(
@@ -129,7 +113,11 @@ cc_library(
     name = "rpc_crawler",
     hdrs = ["rpc_crawler.h"],
     visibility = ["//visibility:public"],
-    deps = [":string", ":vector", ":rpc_common"],
+    deps = [
+        ":rpc_common",
+        ":string",
+        ":vector",
+    ],
 )
 
 cc_library(
