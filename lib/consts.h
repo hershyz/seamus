@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include "vector.h"
 #include "string.h"
 
 
@@ -37,12 +36,3 @@ constexpr size_t PERSIST_INTERVAL_SEC = 60;         // Time (seconds) to wait be
 constexpr size_t FEED_INTERVAL_SEC = 1;             // Time (seconds) to wait between feeding in-memory priority buckets -> domain carousel
 
 constexpr size_t PRIORITY_BUCKETS = 8;
-inline vector<string> get_frontier_bucket_files() {
-    vector<string> files;
-    for (size_t i = 0; i < PRIORITY_BUCKETS; ++i) {
-        char buf[16];
-        int len = snprintf(buf, sizeof(buf), "bucket_p%zu", i);
-        files.push_back(string(buf, static_cast<size_t>(len)));
-    }
-    return files;
-}

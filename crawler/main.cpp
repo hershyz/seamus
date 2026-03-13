@@ -5,6 +5,19 @@
 #include "crawler_worker.h"
 #include "domain_carousel.h"
 #include "../lib/logger.h"
+#include "../lib/vector.h"
+
+
+inline vector<string> get_frontier_bucket_files() {
+    vector<string> files;
+    for (size_t i = 0; i < PRIORITY_BUCKETS; ++i) {
+        char buf[16];
+        int len = snprintf(buf, sizeof(buf), "bucket_p%zu", i);
+        files.push_back(string(buf, static_cast<size_t>(len)));
+    }
+    return files;
+}
+
 
 int main() {
     logger::info("Crawler started...");
