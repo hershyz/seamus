@@ -199,7 +199,7 @@ private:
     }
 
     static bool comma_in_number(const char* p, const char* end) {
-        return *p == ',' && (p + 1 < end && *(p + 1) - '0' >= 0 && *(p + 1) - '0' <= 9) && (*(p - 1) - '0' >= 0 && *(p - 1) - '0' <= 9);
+        return (*p == ',' || *p == '.') && (p + 1 < end && *(p + 1) - '0' >= 0 && *(p + 1) - '0' <= 9) && (*(p - 1) - '0' >= 0 && *(p - 1) - '0' <= 9);
     }
 
     // Core parsing logic, man i'm glad David did most of this
