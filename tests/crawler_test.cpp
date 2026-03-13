@@ -3,6 +3,7 @@
 #include <thread>
 #include <chrono>
 #include "../crawler/crawler_listener.h"
+#include "../crawler/crawler_worker.h"
 #include "../crawler/domain_carousel.h"
 
 
@@ -342,6 +343,70 @@ void test_bucket_manager_empty_buckets() {
 }
 
 
+void test_spawn_crawler_workers_consumes_and_stops() {
+    printf("---- test_spawn_crawler_workers_consumes_and_stops ----\n");
+
+    DomainCarousel dc;
+    std::atomic<bool> running{true};
+
+    // Populate every carousel slot directly with one target
+    // Use 127.0.0.1 as domain so https_get fails instantly (connection refused on port 443)
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        char url_buf[64];
+        snprintf(url_buf, sizeof(url_buf), "https://127.0.0.1/page%zu", i);
+        std::lock_guard<std::mutex> lock(dc.carousel[i].domain_queue_lock);
+        dc.carousel[i].targets.push_back(CrawlTarget{
+            string("127.0.0.1"),
+            string(url_buf, strlen(url_buf)),
+            0, 0
+        });
+    }
+
+    // Verify all slots are populated
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        assert(dc.carousel[i].targets.size() == 1);
+    }
+
+    // Spawn workers
+    spawn_crawler_workers(dc, running);
+
+    // Wait for workers to consume all targets
+    std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_BACKOFF_SEC + 3));
+
+    // All slots should be empty
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        std::lock_guard<std::mutex> lock(dc.carousel[i].domain_queue_lock);
+        assert(dc.carousel[i].targets.size() == 0);
+    }
+
+    // Shut down workers
+    running.store(false, std::memory_order_relaxed);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    // Repopulate every slot
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        char url_buf[64];
+        snprintf(url_buf, sizeof(url_buf), "https://127.0.0.1/page2_%zu", i);
+        std::lock_guard<std::mutex> lock(dc.carousel[i].domain_queue_lock);
+        dc.carousel[i].targets.push_back(CrawlTarget{
+            string("127.0.0.1"),
+            string(url_buf, strlen(url_buf)),
+            0, 0
+        });
+    }
+
+    // Wait and verify targets are NOT consumed (workers are stopped)
+    std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_BACKOFF_SEC + 3));
+
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        std::lock_guard<std::mutex> lock(dc.carousel[i].domain_queue_lock);
+        assert(dc.carousel[i].targets.size() == 1);
+    }
+
+    printf("PASS\n");
+}
+
+
 int main() {
     printf("\n===== RUNNING CRAWLER TESTS =====\n\n");
     test_crawler_listener_receives_batch();
@@ -351,6 +416,7 @@ int main() {
     test_bucket_manager_feeds_carousel();
     test_backoff_queue_drains_after_slot_cleared();
     test_bucket_manager_empty_buckets();
+    test_spawn_crawler_workers_consumes_and_stops();
     printf("\n===== ALL CRAWLER TESTS PASSED =====\n");
     return 0;
 }

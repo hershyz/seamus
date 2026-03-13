@@ -6,6 +6,7 @@
 #include "domain_carousel.h"
 #include "../lib/logger.h"
 #include "../lib/vector.h"
+#include "../lib/consts.h"
 
 
 inline vector<string> get_frontier_bucket_files() {
@@ -40,4 +41,9 @@ int main() {
     CrawlerListener cl(&bm, &dc);
     cl.start();
     logger::info("Crawler listener started on port %u with %zu threads", CRAWLER_LISTENER_PORT, CRAWLER_LISTENER_THREADS);
+
+    // Crawler workers (multiplexing domain carousel)
+    std::atomic<bool> workers_running{true};
+    spawn_crawler_workers(dc, workers_running);
+    logger::info("Spawned %zu crawler workers", CRAWLER_THREADPOOL_SIZE);
 }
