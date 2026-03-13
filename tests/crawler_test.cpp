@@ -174,12 +174,183 @@ void test_feed_carousel_empty() {
 }
 
 
+void test_bucket_manager_feeds_carousel() {
+    printf("---- test_bucket_manager_feeds_carousel ----\n");
+
+    DomainCarousel dc;
+
+    // Create bucket manager
+    vector<string> bucket_files;
+    for (size_t i = 0; i < PRIORITY_BUCKETS; i++) {
+        bucket_files.push_back(string("bucket_"));
+    }
+    BucketManager bm(static_cast<vector<string>&&>(bucket_files), &dc);
+
+    // Populate bucket 0 with 5 targets across different domains
+    {
+        std::lock_guard<std::mutex> lock(dc.buckets[0].bucket_lock);
+        for (size_t i = 0; i < 5; ++i) {
+            char url_buf[64];
+            char domain_buf[64];
+            snprintf(domain_buf, sizeof(domain_buf), "domain%zu.com", i);
+            snprintf(url_buf, sizeof(url_buf), "https://domain%zu.com/page", i);
+            dc.buckets[0].urls.push_back(CrawlTarget{
+                string(domain_buf, strlen(domain_buf)),
+                string(url_buf, strlen(url_buf)),
+                0, 0
+            });
+        }
+    }
+
+    // Start the bucket manager (spawns feed thread)
+    bm.start();
+
+    // Wait for the feed thread to process
+    std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_FEED_INTERVAL_SEC + 1));
+
+    // Buckets should be drained
+    {
+        std::lock_guard<std::mutex> lock(dc.buckets[0].bucket_lock);
+        assert(dc.buckets[0].urls.size() == 0);
+    }
+
+    // All 5 targets should be in the carousel (or backoff queue if slots were full)
+    size_t carousel_total = 0;
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        carousel_total += dc.carousel[i].targets.size();
+    }
+    {
+        std::lock_guard<std::mutex> lock(bm.backoff_lock);
+        assert(carousel_total + bm.backoff_queue.size() == 5);
+    }
+
+    // Verify no duplicates: total across carousel + backoff should still be 5 after another cycle
+    std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_FEED_INTERVAL_SEC + 1));
+
+    size_t carousel_total_after = 0;
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        carousel_total_after += dc.carousel[i].targets.size();
+    }
+    {
+        std::lock_guard<std::mutex> lock(bm.backoff_lock);
+        assert(carousel_total_after + bm.backoff_queue.size() == 5);
+    }
+
+    printf("PASS\n");
+}
+
+
+void test_backoff_queue_drains_after_slot_cleared() {
+    printf("---- test_backoff_queue_drains_after_slot_cleared ----\n");
+
+    DomainCarousel dc;
+    size_t total_targets = CRAWLER_MAX_QUEUE_SIZE + 10;
+    size_t overflow_count = 10;
+
+    vector<string> bucket_files;
+    for (size_t i = 0; i < PRIORITY_BUCKETS; i++) {
+        bucket_files.push_back(string("bucket_"));
+    }
+    BucketManager bm(static_cast<vector<string>&&>(bucket_files), &dc);
+
+    // Push more targets to the same domain than the carousel slot can hold
+    {
+        std::lock_guard<std::mutex> lock(dc.buckets[0].bucket_lock);
+        for (size_t i = 0; i < total_targets; ++i) {
+            char url_buf[64];
+            snprintf(url_buf, sizeof(url_buf), "https://same-domain.com/%zu", i);
+            dc.buckets[0].urls.push_back(CrawlTarget{
+                string("same-domain.com"),
+                string(url_buf, strlen(url_buf)),
+                0, 0
+            });
+        }
+    }
+
+    bm.start();
+
+    // Wait for the feed thread to drain the bucket into the carousel + backoff
+    std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_FEED_INTERVAL_SEC + 1));
+
+    // Bucket should be drained
+    {
+        std::lock_guard<std::mutex> lock(dc.buckets[0].bucket_lock);
+        assert(dc.buckets[0].urls.size() == 0);
+    }
+
+    // Carousel slot should be full, overflow should be in backoff queue
+    size_t slot = DomainCarousel::hash_domain(string("same-domain.com")) % CRAWLER_CAROUSEL_SIZE;
+    assert(dc.carousel[slot].targets.size() == CRAWLER_MAX_QUEUE_SIZE);
+    {
+        std::lock_guard<std::mutex> lock(bm.backoff_lock);
+        assert(bm.backoff_queue.size() == overflow_count);
+    }
+
+    // Clear the carousel slot to make room for backoff items
+    {
+        std::lock_guard<std::mutex> lock(dc.carousel[slot].domain_queue_lock);
+        while (!dc.carousel[slot].targets.empty()) {
+            dc.carousel[slot].targets.pop_front();
+        }
+    }
+
+    // Wait for backoff period (CRAWLER_BACKOFF_SEC) + a feed cycle to process them
+    std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_BACKOFF_SEC + CRAWLER_FEED_INTERVAL_SEC + 1));
+
+    // Backoff queue should now be empty — all overflow items moved to carousel
+    {
+        std::lock_guard<std::mutex> lock(bm.backoff_lock);
+        assert(bm.backoff_queue.size() == 0);
+    }
+
+    // The overflow items should now be in the carousel slot
+    assert(dc.carousel[slot].targets.size() == overflow_count);
+
+    printf("PASS\n");
+}
+
+
+void test_bucket_manager_empty_buckets() {
+    printf("---- test_bucket_manager_empty_buckets ----\n");
+
+    DomainCarousel dc;
+
+    vector<string> bucket_files;
+    for (size_t i = 0; i < PRIORITY_BUCKETS; i++) {
+        bucket_files.push_back(string("bucket_"));
+    }
+    BucketManager bm(static_cast<vector<string>&&>(bucket_files), &dc);
+
+    // Start with all buckets empty
+    bm.start();
+
+    // Let the feed thread run a couple cycles
+    std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_FEED_INTERVAL_SEC + 1));
+
+    // Carousel should remain completely empty
+    for (size_t i = 0; i < CRAWLER_CAROUSEL_SIZE; ++i) {
+        assert(dc.carousel[i].targets.size() == 0);
+    }
+
+    // Backoff queue should also be empty
+    {
+        std::lock_guard<std::mutex> lock(bm.backoff_lock);
+        assert(bm.backoff_queue.size() == 0);
+    }
+
+    printf("PASS\n");
+}
+
+
 int main() {
     printf("\n===== RUNNING CRAWLER TESTS =====\n\n");
     test_crawler_listener_receives_batch();
     test_push_target_fill_and_overflow();
     test_feed_carousel_concurrent();
     test_feed_carousel_empty();
+    test_bucket_manager_feeds_carousel();
+    test_backoff_queue_drains_after_slot_cleared();
+    test_bucket_manager_empty_buckets();
     printf("\n===== ALL CRAWLER TESTS PASSED =====\n");
     return 0;
 }

@@ -10,6 +10,7 @@
 #include <atomic>
 #include <mutex>
 #include <chrono>
+#include <thread>
 
 
 class BucketManager {
@@ -39,13 +40,14 @@ public:
     //      2) Feed carousel
     //      3) Persist carousel
     void start() {
-
+        feed_thread = std::thread(&BucketManager::feed_carousel_worker, this);
     }
 
 
     // Destructor
     ~BucketManager() {
         running.store(false, std::memory_order_relaxed);
+        if (feed_thread.joinable()) feed_thread.join();
     }
 
 
@@ -53,7 +55,27 @@ public:
     // This 1) tries to move crawl targets from priority buckets into the carousel and 2) tries to move crawl targets from the backoff queue into the carousel
     void feed_carousel_worker() {
         while (running) {
-            
+            // Move crawl targets from priority buckets into the carousel
+            dc->feed_carousel_from_highest_priority_bucket(backoff_lock, backoff_queue);
+
+            // Move crawl targets from the backoff queue into the carousel, breaks once we encounter an item that has not been on the backoff queue for long enough (FIFO order)
+            {
+                auto now = std::chrono::steady_clock::now();
+                std::lock_guard<std::mutex> lock(backoff_lock);
+                while (!backoff_queue.empty()) {
+                    auto& front = backoff_queue.front();
+                    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - front.rejected_at).count();
+                    if (elapsed < static_cast<long long>(CRAWLER_BACKOFF_SEC)) break;
+
+                    CrawlTarget target = std::move(front.target);
+                    backoff_queue.pop_front();
+                    if (!dc->push_target(std::move(target))) {
+                        backoff_queue.push_back(BackoffEntry{std::move(target), now});
+                    }
+                }
+            }
+
+            std::this_thread::sleep_for(std::chrono::seconds(CRAWLER_FEED_INTERVAL_SEC));
         }
     }
 
@@ -77,4 +99,7 @@ private:
 
     // Signal for detached threads to exit (and thus join in the destructor)
     std::atomic<bool> running{true};
+
+    // Nameable threads for joining
+    std::thread feed_thread;
 };
