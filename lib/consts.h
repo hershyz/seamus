@@ -37,3 +37,11 @@ constexpr size_t CRAWLER_FEED_INTERVAL_SEC = 1;             // Time (seconds) to
 constexpr size_t CRAWLER_WORKER_SLEEP_MS = 10;              // Time (milliseconds) for the crawler worker to sleep before moving to a new slot
 
 constexpr size_t PRIORITY_BUCKETS = 8;
+
+
+// URL Store
+constexpr uint32_t URL_STORE_WORKER_NUMBER = 0;
+constexpr uint32_t URL_STORE_NUM_THREADS = 8;
+constexpr uint32_t URL_STORE_PORT = 9000;
+constexpr uint32_t URL_STORE_MAX_URL_LEN = 4096;           // 4 KB max url length
+constexpr uint32_t URL_STORE_MAX_ANCHOR_TEXT_LEN = 512;     // 0.5 KB max anchor text length

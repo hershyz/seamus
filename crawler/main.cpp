@@ -7,6 +7,7 @@
 #include "../lib/logger.h"
 #include "../lib/vector.h"
 #include "../lib/consts.h"
+#include "../url_store/url_store.h"
 
 
 inline vector<string> get_frontier_bucket_files() {
@@ -27,6 +28,10 @@ int main() {
     // Domain carousel
     DomainCarousel dc;
     logger::info("Domain carousel initialized (%zu hash slots, max %zu per queue)", CRAWLER_CAROUSEL_SIZE, CRAWLER_MAX_QUEUE_SIZE);
+
+    // URL Store
+    UrlStore url_store;
+    logger::info("URL store listener started on port %u with %u threads", URL_STORE_PORT, URL_STORE_NUM_THREADS);
 
     // Bucket manager
     vector<string> bucket_files = get_frontier_bucket_files();

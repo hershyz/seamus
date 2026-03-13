@@ -37,6 +37,9 @@ inline void crawler_worker(DomainCarousel& dc, size_t carousel_left, size_t caro
                 continue;
             }
 
+            // TODO(hershey): At this point, we know that the url belongs to this machine, so we can update url store with num url hops and num domain hops from the seed list
+            // TODO(Esben/David): Parser needs to send updates to urlstore(s) (potentially on other machines) with anchor text data that it finds
+
             // Only crawl HTTPS links
             if (target->url.size() < 8 || memcmp(target->url.data(), "https://", 8) != 0) continue;
 
