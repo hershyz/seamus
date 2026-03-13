@@ -32,6 +32,7 @@ inline void crawler_worker(DomainCarousel& dc, size_t carousel_left, size_t caro
                 }
             }
 
+            // Sleep if we couldn't acquire a target
             if (!target) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(CRAWLER_WORKER_SLEEP_MS));
                 continue;
@@ -53,8 +54,6 @@ inline void crawler_worker(DomainCarousel& dc, size_t carousel_left, size_t caro
                 // TODO(Esben/David): call inlined parser logic here on the raw body buffer, make sure you free the buffer after the parsed contents are persisted (see below)
                 free(body);
             }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(CRAWLER_WORKER_SLEEP_MS));
         }
     }
 }
