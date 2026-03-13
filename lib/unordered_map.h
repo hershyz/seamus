@@ -71,7 +71,6 @@ struct DefaultHash<string> {
     }
 };
 
-
 struct DefaultEq {
     bool operator()(const auto& a, const auto& b) const {
         return a == b;
@@ -179,7 +178,6 @@ private:
     }
 
 public:
-
     bool contains(const Key& key) const {
         const size_t index = find_index(key);
         return states[index] == State::FILLED;

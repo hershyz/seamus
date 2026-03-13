@@ -15,12 +15,11 @@
 inline ssize_t seamus_read(int fd, char *buf, size_t len) {
     ssize_t bytes_read = 0;
     ssize_t bytes_in = 0;
-    while ((bytes_in = recv(fd, buf + bytes_read, len - bytes_read, 0))) {
+    while ((bytes_in = read(fd, buf + bytes_read, len - bytes_read))) {
         if (bytes_in == -1 && errno == EINTR) continue;
         if (bytes_in <= 0) break;
         bytes_read += bytes_in;
     }
-
     if (bytes_in < 0) return -1;
     if (bytes_read == 0) return 0;
     return bytes_read;
