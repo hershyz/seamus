@@ -131,8 +131,8 @@ void test_feed_carousel_concurrent() {
 
     // Call feed_carousel concurrently from two threads
     int16_t result1 = -1, result2 = -1;
-    std::thread t1([&]() { result1 = dc.feed_carousel(backoff_lock, backoff_queue); });
-    std::thread t2([&]() { result2 = dc.feed_carousel(backoff_lock, backoff_queue); });
+    std::thread t1([&]() { result1 = dc.feed_carousel_from_highest_priority_bucket(backoff_lock, backoff_queue); });
+    std::thread t2([&]() { result2 = dc.feed_carousel_from_highest_priority_bucket(backoff_lock, backoff_queue); });
     t1.join();
     t2.join();
 
@@ -162,7 +162,7 @@ void test_feed_carousel_empty() {
     // All buckets are empty, should return -1
     std::mutex backoff_lock;
     deque<BackoffEntry> backoff_queue;
-    int16_t result = dc.feed_carousel(backoff_lock, backoff_queue);
+    int16_t result = dc.feed_carousel_from_highest_priority_bucket(backoff_lock, backoff_queue);
     assert(result == -1);
 
     // Carousel should still be empty
