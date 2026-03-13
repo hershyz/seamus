@@ -32,10 +32,11 @@ public:
     char base[MAX_BASE_LEN] = {};
     size_t base_len = 0;
 
-    HtmlParser(int in_fd, int words_fd, int links_fd, const char *url)
+    HtmlParser(int in_fd, int words_fd, int links_fd, int titles_fd, const char *url)
         : in_fd_(in_fd)
         , words(words_fd)
         , links(links_fd)
+        , title_lengths(titles_fd)
         , url(url) {
         write_header();
     }
@@ -64,8 +65,11 @@ public:
         }
         // Mark that this doc is done
         write_footer();
+
+        // Flush any data remaining in buffer
         words.flush();
         links.flush();
+        title_lengths.flush();
     }
 
     void inline write_header() {
@@ -189,9 +193,13 @@ private:
     size_t discard_tag_len_ = 0;
 
     // Characters we want to break words on
-    static bool is_word_break_char(char c) {
+    static bool is_word_break_char(const char c) {
         return isspace(c) || c == ',' || c == '.' || c == ':' || c == ';' || c == '!' || c == '?' || c == '('
-            || c == ')' || c == '"' || c == '[' || c == ']' || c == '{' || c == '}' || c == '-';
+            || c == ')' || c == '"' || c == '[' || c == ']' || c == '{' || c == '}' || c == '-' || c == '+';
+    }
+
+    static bool comma_in_number(const char* p, const char* end) {
+        return *p == ',' && (p + 1 < end && *(p + 1) - '0' >= 0 && *(p + 1) - '0' <= 9) && (*(p - 1) - '0' >= 0 && *(p - 1) - '0' <= 9);
     }
 
     // Core parsing logic, man i'm glad David did most of this
@@ -207,8 +215,12 @@ private:
                 // Write back word if relevant
                 if (p > word_start) {
                     size_t word_len = p - word_start;
-                    if (in_a_) links.push_back(word_start, word_len, SPACE_DELIM);
-                    words.push_back(word_start, word_len);
+                    if (in_a_) {
+                        !comma_in_number(p, end) ? links.push_back(word_start, word_len, SPACE_DELIM) : links.push_back(word_start, word_len, NULL_DELIM);
+                    }
+                    
+                    // If a comma in between two ints, treat the whole number as a single word
+                    !comma_in_number(p, end) ? words.push_back(word_start, word_len) : words.push_back(word_start, word_len, NULL_DELIM);
                     num_words++;
                     word_start = ++p;
                 } else {   // Not tracking a word, just continue
