@@ -3,19 +3,28 @@
 #include "string.h"
 #include "vector.h"
 #include "rpc_common.h"
+#include "utils.h"
+#include "../lib/unordered_map.h"
+
+#include "utils.h"
+#include "../lib/unordered_map.h"
+
 #include <cstdint>
 #include <optional>
 
+/*
+Currently, there functionality is divided into a couple categories:
+    - Sending URLStore update/write requests from crawlers
+    - URLStore read/data getters and batch getters
+*/
 
 struct AnchorData {
     uint32_t anchor_id;
     uint32_t freq;
 };
 
-
-// TODO: decide if vector is better than hashmap for anchor_freqs (cache locality vs. O(1) average lookup)
 struct UrlData {
-    vector<AnchorData> anchor_freqs;                     // anchor text id to frequency since its last update (potentially size >1)
+    unordered_map<uint32_t, uint32_t> anchor_freqs;                     // anchor text id to frequency since its last update (potentially size >1)
     uint32_t num_encountered;                            // Number of times this URL has been encountered
     uint16_t seed_distance;                              // Distance from seed list
     uint16_t domain_dist;                                // Domain distance from seed list TODO(charlie): implement this feature
@@ -26,19 +35,21 @@ struct UrlData {
 
 // Request sent to end server hosting the (sharded) dynamic URL data when a new URL is encountered
 struct URLStoreUpdateRequest {
-    string url;                         // URL: primary identifier
+    string url = string("");                         // URL: primary identifier
 
-    // TODO(charlie/hershey): convert this to be vector<string>
-    string anchor_text;                 // Vector of anchor text strings used to refer to this URL since its last update (potentially size >1)
+    vector<string> anchor_text;         // Vector of anchor text strings used to refer to this URL since its last update (potentially size >1)
     uint32_t num_encountered;           // Number of additional times this URL has been encountered since its last update
-    uint32_t seed_list_url_hops;        // Found distance in url hops from seed list (updated if lower than current)
-    uint32_t seed_list_domain_hops;     // Found distance in domain hops from the seed list (updated if lower than current)
+    uint16_t seed_list_url_hops;        // Found distance in url hops from seed list (updated if lower than current)
+    uint16_t seed_list_domain_hops;     // Found distance in domain hops from the seed list (updated if lower than current)
 };
 
 struct BatchURLStoreUpdateRequest {
     vector<URLStoreUpdateRequest> reqs;
 };
 
+struct BatchURLStoreUpdateResponse {
+    // For future use if we want to send back any data (e.g. canonical URL, updated metadata, etc.)
+};
 
 // RPC getter/response for URL data, same send structure as above
 // Responses are batched as a parallel vector to the urls in the request
@@ -50,17 +61,24 @@ struct BatchURLStoreDataResponse {
     vector<UrlData> resps;
 };
 
+inline size_t anchor_text_total_size(const vector<string>& anchor_texts) {
+    size_t total = 0;
+    for (const string& anchor : anchor_texts) {
+        total += anchor.size();
+    }
+    return static_cast<size_t>(total);
+}
 
 // Helper to serialize + send a BatchURLStoreUpdateRequest over network
 inline bool send_batch_urlstore_update(const string& host, uint16_t port, const BatchURLStoreUpdateRequest& batch) {
     // Compute total buffer size:
     // 4 bytes for request count
-    // Per request: 4 + url.size() + 4 + anchor_text.size() + 4 + 4 + 4
+    // Per request: 4 + url.size() + 4 + 4 + anchor_text_total_size(req.anchor_text) + 4 + 4 + 4
     size_t total = sizeof(uint32_t);
     for (size_t i = 0; i < batch.reqs.size(); i++) {
         const auto& req = batch.reqs[i];
         total += sizeof(uint32_t) + req.url.size()
-               + sizeof(uint32_t) + req.anchor_text.size()
+               + sizeof(uint32_t) + sizeof(uint32_t) + anchor_text_total_size(req.anchor_text)
                + sizeof(uint32_t) * 3;
     }
 
@@ -83,11 +101,17 @@ inline bool send_batch_urlstore_update(const string& host, uint16_t port, const 
         off += req.url.size();
 
         // anchor_text (length-prefixed)
-        uint32_t anchor_len = htonl(static_cast<uint32_t>(req.anchor_text.size()));
-        std::memcpy(buf + off, &anchor_len, sizeof(uint32_t));
+        // send length of vector first then have recv read in this size and loop for that
+        uint32_t anchor_count = htonl(static_cast<uint32_t>(req.anchor_text.size()));
+        std::memcpy(buf + off, &anchor_count, sizeof(uint32_t));
         off += sizeof(uint32_t);
-        std::memcpy(buf + off, req.anchor_text.data(), req.anchor_text.size());
-        off += req.anchor_text.size();
+        for (const string& anchor : req.anchor_text) {
+            uint32_t anchor_len = htonl(static_cast<uint32_t>(anchor.size()));
+            std::memcpy(buf + off, &anchor_len, sizeof(uint32_t));
+            off += sizeof(uint32_t);
+            std::memcpy(buf + off, anchor.data(), anchor.size());
+            off += anchor.size();
+        }
 
         // num_encountered
         uint32_t enc = htonl(req.num_encountered);
@@ -95,14 +119,14 @@ inline bool send_batch_urlstore_update(const string& host, uint16_t port, const 
         off += sizeof(uint32_t);
 
         // seed_list_url_hops
-        uint32_t url_hops = htonl(req.seed_list_url_hops);
-        std::memcpy(buf + off, &url_hops, sizeof(uint32_t));
-        off += sizeof(uint32_t);
+        uint16_t url_hops = htons(req.seed_list_url_hops);
+        std::memcpy(buf + off, &url_hops, sizeof(uint16_t));
+        off += sizeof(uint16_t);
 
         // seed_list_domain_hops
-        uint32_t domain_hops = htonl(req.seed_list_domain_hops);
-        std::memcpy(buf + off, &domain_hops, sizeof(uint32_t));
-        off += sizeof(uint32_t);
+        uint16_t domain_hops = htons(req.seed_list_domain_hops);
+        std::memcpy(buf + off, &domain_hops, sizeof(uint16_t));
+        off += sizeof(uint16_t);
     }
 
     bool ok = send_buffer(host, port, buf, total);
@@ -157,7 +181,7 @@ inline std::optional<UrlData> recv_url_data(int fd) {
     for (uint32_t i = 0; i < anchor_count; i++) {
         auto a = recv_anchor_data(fd);
         if (!a) return std::nullopt;
-        d.anchor_freqs.push_back(*a);
+        d.anchor_freqs[a->anchor_id] = a->freq;
     }
 
     if (!recv_u32(fd, d.num_encountered)) return std::nullopt;
@@ -171,7 +195,7 @@ inline std::optional<UrlData> recv_url_data(int fd) {
 
 
 // Helper to serialize + send a BatchURLStoreDataResponse over network
-inline bool send_batch_urlstore_data_response(const string& host, uint16_t port, const BatchURLStoreDataResponse& batch) {
+inline bool send_batch_urlstore_data_response(const string& host, uint16_t port, BatchURLStoreDataResponse& batch) {
     // Compute total buffer size:
     // 4 bytes for response count
     // Per UrlData: 4 (anchor count) + 8 per anchor + 4 (num_encountered) + 2*4 (seed_distance, domain_dist, eot, eod)
@@ -191,19 +215,20 @@ inline bool send_batch_urlstore_data_response(const string& host, uint16_t port,
     off += sizeof(uint32_t);
 
     for (size_t i = 0; i < batch.resps.size(); i++) {
-        const auto& d = batch.resps[i];
+        auto& d = batch.resps[i];
 
         // anchor_freqs (count-prefixed)
         uint32_t anchor_count = htonl(static_cast<uint32_t>(d.anchor_freqs.size()));
         std::memcpy(buf + off, &anchor_count, sizeof(uint32_t));
         off += sizeof(uint32_t);
 
-        for (size_t j = 0; j < d.anchor_freqs.size(); j++) {
-            uint32_t aid = htonl(d.anchor_freqs[j].anchor_id);
+        for (auto it = d.anchor_freqs.begin(); it != d.anchor_freqs.end(); ++it) {
+            const auto& tuple = *it;
+            uint32_t aid = htonl(tuple.key);
             std::memcpy(buf + off, &aid, sizeof(uint32_t));
             off += sizeof(uint32_t);
 
-            uint32_t freq = htonl(d.anchor_freqs[j].freq);
+            uint32_t freq = htonl(tuple.value);
             std::memcpy(buf + off, &freq, sizeof(uint32_t));
             off += sizeof(uint32_t);
         }
@@ -277,14 +302,20 @@ inline std::optional<BatchURLStoreUpdateRequest> recv_batch_urlstore_update(int 
         auto url = recv_string(fd);
         if (!url) return std::nullopt;
 
-        auto anchor = recv_string(fd);
-        if (!anchor) return std::nullopt;
+        vector<string> anchor_texts;
+        uint32_t anchor_count;
+        if (!recv_u32(fd, anchor_count)) return std::nullopt;
+        for (size_t j = 0; j < anchor_count; j++) {
+            auto anchor = recv_string(fd);
+            if (!anchor) return std::nullopt;
+            anchor_texts.push_back(std::move(*anchor));
+        }
 
-        URLStoreUpdateRequest req{std::move(*url), std::move(*anchor), 0, 0, 0};
+        URLStoreUpdateRequest req{std::move(*url), move(anchor_texts), 0, 0, 0};
 
         if (!recv_u32(fd, req.num_encountered)) return std::nullopt;
-        if (!recv_u32(fd, req.seed_list_url_hops)) return std::nullopt;
-        if (!recv_u32(fd, req.seed_list_domain_hops)) return std::nullopt;
+        if (!recv_u16(fd, req.seed_list_url_hops)) return std::nullopt;
+        if (!recv_u16(fd, req.seed_list_domain_hops)) return std::nullopt;
 
         batch.reqs.push_back(std::move(req));
     }

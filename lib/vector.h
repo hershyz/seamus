@@ -2,7 +2,7 @@
 #include <cassert>
 #include <cstddef>                          // For size_t
 #include <new>                              // For placement new
-#include <utility>                          // For std::move
+#include "utils.h"
 
 template<typename T>
 class vector {
@@ -125,17 +125,30 @@ public:
     }
 
 
-    // REQUIRES: new_capacity > capacity( )
+    // REQUIRES: Nothing
     // MODIFIES: capacity( )
     // EFFECTS: Ensures that the vector can contain size( ) = new_capacity
     //    elements before having to reallocate
-    void reserve(size_t newCapacity) { realloc_(newCapacity); }
+    void reserve(size_t newCapacity) {
+        if (newCapacity <= alloc_capacity) return;
+        realloc_(newCapacity);
+    }
 
-    
+
     void resize(size_t newCapacity) {
-        reserve(newCapacity);
-        while(vec_size < newCapacity) {
-            push_back(T()); // default construct new element
+        if (newCapacity < vec_size) {
+            // Shrink: destroy excess elements
+            for (size_t i = newCapacity; i < vec_size; ++i) {
+                alloc_region[i].~T();
+            }
+            vec_size = newCapacity;
+        } else if (newCapacity > vec_size) {
+            // Grow: allocate and default construct
+            reserve(newCapacity);
+            while(vec_size < newCapacity) {
+                new (alloc_region + vec_size) T();
+                vec_size++;
+            }
         }
     }
 
@@ -150,9 +163,14 @@ public:
     // REQUIRES: At least one element
     // MODIFIES: Nothing
     // EFFECTS: Nothing
-    T front() {
+    T& front() {
         assert(!empty());
-        return alloc_region[0]; 
+        return alloc_region[0];
+    }
+
+    const T& front() const{
+        assert(!empty());
+        return alloc_region[0];
     }
 
 
@@ -160,9 +178,14 @@ public:
     // REQUIRES: At least one element
     // MODIFIES: Nothing
     // EFFECTS: Nothing
-    T back() {
+    T& back() {
         assert(!empty());
-        return alloc_region[vec_size - 1]; 
+        return alloc_region[vec_size - 1];
+    }
+
+    const T& back() const{
+        assert(!empty());
+        return alloc_region[vec_size - 1];
     }
 
 
@@ -220,7 +243,7 @@ public:
             realloc_(new_alloc_capacity);
         }
 
-        new (alloc_region + vec_size) T(std::move(x));
+        new (alloc_region + vec_size) T(::move(x));
         vec_size++;
     }
 
@@ -238,14 +261,14 @@ public:
 
     // REQUIRES: Nothing
     // MODIFIES: Allows mutable access to the vector's contents
-    // EFFECTS: Returns a mutable random access iterator to the 
+    // EFFECTS: Returns a mutable random access iterator to the
     //    first element of the vector
     T* begin() { return alloc_region; }
 
 
     // REQUIRES: Nothing
     // MODIFIES: Allows mutable access to the vector's contents
-    // EFFECTS: Returns a mutable random access iterator to 
+    // EFFECTS: Returns a mutable random access iterator to
     //    one past the last valid element of the vector
     T* end() { return alloc_region + vec_size; }
 
@@ -258,7 +281,7 @@ public:
 
     // REQUIRES: Nothing
     // MODIFIES: Nothing
-    // EFFECTS: Returns a random access iterator to 
+    // EFFECTS: Returns a random access iterator to
     //    one past the last valid element of the vector
     const T* end() const { return alloc_region + vec_size; }
 
@@ -274,7 +297,7 @@ private:
     void realloc_(size_t new_alloc_capacity) {
         T* new_alloc_region = static_cast<T*>(::operator new(new_alloc_capacity * sizeof(T)));
         for (size_t i = 0; i < vec_size; ++i) {
-            new (new_alloc_region + i) T(std::move(alloc_region[i]));
+            new (new_alloc_region + i) T(::move(alloc_region[i]));
             alloc_region[i].~T();
         }
 

@@ -1,39 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
-    name = "mutex_test",
-    srcs = ["mutex_test.cpp"],
-    deps = ["//lib:mutex"],
-)
-
-cc_test(
-    name = "raii_test",
-    srcs = ["raii_test.cpp"],
-    deps = [
-        "//lib:lock_guard",
-        "//lib:mutex",
-    ],
-)
-
-cc_test(
-    name = "condition_variable_test",
-    srcs = ["condition_variable_test.cpp"],
-    deps = [
-        "//lib:condition_variable",
-        "//lib:mutex",
-    ],
-)
-
-cc_test(
-    name = "lock_guard_test",
-    srcs = ["lock_guard_test.cpp"],
-    deps = [
-        "//lib:lock_guard",
-        "//lib:mutex",
-    ],
-)
-
-cc_test(
     name = "vector_test",
     srcs = ["vector_test.cpp"],
     deps = ["//lib:vector"],
@@ -152,10 +119,41 @@ cc_test(
 )
 
 cc_test(
-    name = "domaain_carousel_test",
+    name = "http_benchmark",
+    srcs = ["http_benchmark.cpp"],
+    deps = ["//crawler:crawler_lib"],
+)
+
+cc_test(
+    name = "https_benchmark",
+    srcs = ["https_benchmark.cpp"],
+    deps = ["//crawler:crawler_lib"],
+)
+
+cc_test(
+    name = "domain_carousel_test",
     srcs = ["domain_carousel_test.cpp"],
     deps = [
         "//crawler:domain_carousel",
         "//lib:string",
     ],
+)
+
+cc_test(
+    name = "url_store_test",
+    srcs = ["url_store_test.cpp"],
+    deps = [
+        "//lib:consts",
+        "//lib:utils",
+        "//url_store:url_store",
+    ],
+)
+
+cc_test(
+    name = "index_test",
+    srcs = ["index_test.cpp"],
+    data = ["index_test_simple.in"],
+    deps = [
+        "//index:index_lib"
+    ]
 )

@@ -3,39 +3,28 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 cc_library(
     name = "crawler_lib",
     hdrs = [
-        "bucket_manager.h",
         "crawler_listener.h",
-        "crawler_worker.h",
         "domain_carousel.h",
-        "network_util.h",
         "parser.h",
+        "bucket_manager.h",
+        "network_util.h",
+        "crawler_worker.h",
+        "crawler_outbound.h",
     ],
+    copts = ["-I/opt/homebrew/opt/openssl@3/include"],
+    linkopts = [                                                        # todo(hershey): add proper linkopts when we build for linux
+        "-L/opt/homebrew/opt/openssl@3/lib",
+        "-lssl",
+        "-lcrypto",
+    ],
+    deps = ["//lib:consts", "//lib:vector", "//lib:deque", "//lib:string", "//lib:utils", "//lib:rpc_listener", "//lib:rpc_crawler", "//lib:logger"],
     visibility = ["//visibility:public"],
-    deps = [
-        "//lib:consts",
-        "//lib:deque",
-        "//lib:rpc_crawler",
-        "//lib:rpc_listener",
-        "//lib:string",
-        "//lib:utils",
-        "//lib:vector",
-    ],
 )
 
 cc_binary(
     name = "crawler",
     srcs = ["main.cpp"],
-    deps = [":crawler_lib"],
+    deps = [":crawler_lib", "//url_store"],
+    visibility = ["//visibility:public"],
 )
 
-cc_library(
-    name = "domain_carousel",
-    srcs = ["domain_carousel.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//lib:consts",
-        "//lib:deque",
-        "//lib:string",
-        "//lib:utils",
-    ],
-)

@@ -1,47 +1,42 @@
-//
-// Created by Aiden Mizhen on 2/23/26.
-//
-
 #pragma once
-#include "lib/consts.h"
-#include "lib/deque.h"
-#include "lib/string.h"
-#include "lib/utils.h"
-#include "lib/unordered_map.h"
-#include <chrono>
+
+#include "../lib/deque.h"
+#include "../lib/rpc_crawler.h"
+#include "../lib/consts.h"
 #include <mutex>
-#include <thread>
+#include <chrono>
+#include <cstdint>
 
 
-
-using namespace std::chrono_literals;
-
-struct CrawlTarget {
-    string domain;
-    string url;
+struct BackoffEntry {
+    CrawlTarget target;
+    std::chrono::steady_clock::time_point rejected_at;
 };
 
 
 class DomainCarousel {
-
 public:
-    static constexpr size_t MAX_SIZE = CRAWLER_CAROUSEL_SIZE*CRAWLER_CAROUSEL_QUEUE_SIZE;
 
-private:
-    std::atomic<size_t> size = 0;
-    static constexpr  std::chrono::steady_clock::duration WAIT_TIME = 2s; // TODO : Switch to env? or make website specific
-    static constexpr  std::chrono::steady_clock::duration SLEEP_TIME = 20ms;
+    // In-memory priority buckets of URLs, maintain locks per priority bucket
+    struct alignas(64) PriorityBucket {
+        std::mutex bucket_lock;
+        deque<CrawlTarget> urls{};
+    };
+    PriorityBucket buckets[PRIORITY_BUCKETS]{};
 
 
+    // Queue and carousel state
     struct alignas(64) DomainQueue {
-        std::mutex domain_lock;
-        std::chrono::steady_clock::time_point ready_at;
+        std::mutex domain_queue_lock;
         deque<CrawlTarget> targets{};
+        std::chrono::steady_clock::time_point request_last_sent{};
     };
     DomainQueue carousel[CRAWLER_CAROUSEL_SIZE]{};
 
 
+    // Domain hash function
     static size_t hash_domain(const string& domain) {
+        // These constants are specific to 64-bit FNV-1
         size_t hash = 0xcbf29ce484222325ULL;
         size_t fnv_prime = 0x100000001b3ULL;
 
@@ -55,63 +50,42 @@ private:
         return hash;
     }
 
-    void test() {
-        auto m = unordered_map<int, string>();
-    }
 
-
-public:
-    CrawlTarget get_target(uint32_t thread_num = 0) {
-        const size_t start_index = CRAWLER_CAROUSEL_SIZE * thread_num / CRAWLER_THREADPOOL_SIZE;
-        size_t domain_index = start_index;
-
-        std::chrono::steady_clock::time_point time = std::chrono::steady_clock::now();
-        while (true) {
-            if (not carousel[domain_index].targets.empty()) {
-                std::unique_lock<std::mutex> lock(carousel[domain_index].domain_lock, std::try_to_lock);
-                if (lock.owns_lock() and not carousel[domain_index].targets.empty()
-                    and time >= carousel[domain_index].ready_at) {
-
-                    carousel[domain_index].ready_at = time + WAIT_TIME;
-                    CrawlTarget target = move(carousel[domain_index].targets.front());
-                    carousel[domain_index].targets.pop_front();
-                    size.fetch_sub(1, std::memory_order_relaxed);
-
-                    return target;
-                }
-            }
-            domain_index = (domain_index + 1) % CRAWLER_CAROUSEL_SIZE;
-            if (domain_index == start_index) {
-                std::this_thread::sleep_for(SLEEP_TIME);
-                time = std::chrono::steady_clock::now();
-            }
-        }
-    }
-
+    // Push crawl target to appropriate slot in carousel
+    // Return bool result representing success, lock guard on the respective queue and ensure pushing the target will not exceed size
     bool push_target(CrawlTarget&& target) {
         const size_t domain_index = hash_domain(target.domain) % CRAWLER_CAROUSEL_SIZE;
-        if (carousel[domain_index].targets.size() >= CRAWLER_CAROUSEL_QUEUE_SIZE) {
+        std::lock_guard<std::mutex> lock(carousel[domain_index].domain_queue_lock);    
+        if (carousel[domain_index].targets.size() >= CRAWLER_MAX_QUEUE_SIZE) {
             return false;
         }
-        std::lock_guard<std::mutex> lock(carousel[domain_index].domain_lock);
-        if (carousel[domain_index].targets.size() >= CRAWLER_CAROUSEL_QUEUE_SIZE) {
-            return false;
-        }
-        carousel[domain_index].targets.push_back(move(target));
-        size.fetch_add(1, std::memory_order_relaxed);
+
+        carousel[domain_index].targets.push_back(std::move(target));
         return true;
     }
 
-    // TODO(Aiden) :
-    //  need a way to deal with the first 100k webpages being wikipedia.com
-    //  Likely issues:
-    //      * Break the re-fill logic, will think carousel is full but its all in wikipedia bucket
-    //  Solutions
-    //      * First set bucket limits (required) + mad push_target return bool, success/fail
-    //      * Keep track of min bucket fill level, not total urls
-    //      * These don't fix the 100k wikipedia issue. Has 2 possible solutions:
-    //          - Keep an overflow queue (basically a second frontier, only pull when a "max fill"
-    //              variable is below a threshold
-    //          - Much simpler: Just push the overflowing url to the back of the frontier
-    //      * Or we say this isn't a problem and insist we want to do wikipedia first
+
+    // Util function to feed the carousel with the highest priority bucket that is populated
+    // Targets that fail to push (queue full) are placed into the backoff queue with a rejection timestamp
+    // Returns the priority level of the bucket that was emptied into the carousel, -1 on error/all buckets being empty
+    int16_t feed_carousel_from_highest_priority_bucket(std::mutex& backoff_lock, deque<BackoffEntry>& backoff_queue) {
+        for (size_t plevel = 0; plevel < PRIORITY_BUCKETS; ++plevel) {
+            {
+                std::lock_guard<std::mutex> lock(buckets[plevel].bucket_lock);
+                if (buckets[plevel].urls.size() > 0) {
+                    while (buckets[plevel].urls.size() > 0) {
+                        CrawlTarget target = std::move(buckets[plevel].urls.front());
+                        buckets[plevel].urls.pop_front();
+                        if (!push_target(std::move(target))) {
+                            std::lock_guard<std::mutex> bl(backoff_lock);
+                            backoff_queue.push_back(BackoffEntry{std::move(target), std::chrono::steady_clock::now()});
+                        }
+                    }
+                    return static_cast<int16_t>(plevel);
+                }
+            }
+        }
+
+        return -1;
+    }
 };

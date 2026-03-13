@@ -7,11 +7,11 @@
 
 void init_index() {
     // Find the latest chunk ID
+    file_lock.lock();
     if (chunk == 0) {
         while (file_exists(string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk), ".txt"))) chunk++;
     }
-
-    IndexChunk index;
+    file_lock.unlock();
 }
 
 void IndexChunk::persist() {
@@ -23,7 +23,7 @@ void IndexChunk::persist() {
 
     // 4 bytes for each uint32_t ID, one byte for each char in string, one byte for each new line char
     uint64_t urls_bytes = urls.size() * 4;
-    for (int i = 0; i < urls.size(); i++) urls_bytes += urls[i].size() + 1;
+    for (size_t i = 0; i < urls.size(); i++) urls_bytes += urls[i].size() + 1;
 
     // Write the size of the ID->URL mapping
     // <64b SIZE>\n
@@ -33,7 +33,9 @@ void IndexChunk::persist() {
     // Write the ID->URL mapping
     // <32b ID> <varlen URL>\n
     for (uint32_t i = 0; i < urls.size(); i++) {
-        fwrite(&i, sizeof(i), 1, fd);
+        uint32_t id = i + 1; // 1 indexed
+        
+        fwrite(&id, sizeof(id), 1, fd);
         fwrite(" ", sizeof(char), 1, fd);
         fwrite(&urls[i], sizeof(char), urls[i].size(), fd);
         fwrite("\n", sizeof(char), 1, fd);
@@ -42,7 +44,7 @@ void IndexChunk::persist() {
     fwrite("\n", sizeof(char), 1, fd);
 
     vector<string> alphabetized_entries = sort_entries();
-    const int N = alphabetized_entries.size();
+    const uint32_t N = alphabetized_entries.size();
 
     /**
      * FIRST PASS over postings
@@ -61,7 +63,7 @@ void IndexChunk::persist() {
     vector<vector<uint64_t>> doc_offsets(N, vector<uint64_t>(curr_doc_ + 1, UINT32_MAX));
     uint64_t internal_index_sizes[N];
 
-    for (int i = 0; i < N; i++) {
+    for (uint32_t i = 0; i < N; i++) {
         // First word starting with this letter -- add its offset to the dict lookup table
         if (alphabetized_entries[i][0] > curr_char) {
             curr_char = alphabetized_entries[i][0];
@@ -83,12 +85,12 @@ void IndexChunk::persist() {
 
         // Used to fill the internal index at the top of a posting list, which maps doc ID to byte offset from start of index
         uint64_t internal_offset = 0;
-        uint32_t num_docs = index[alphabetized_entries[i]].posts[0].doc == 0 ? 1 : 0;
+        uint32_t num_docs = index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts[0].doc == 0 ? 1 : 0;
 
         // 32 bit ID, 64 bit offset, 2 filler chars per entry
         const uint64_t INTERNAL_INDEX_ENTRY_SIZE = 5 + 6 + 2;
 
-        for (post p : index[alphabetized_entries[i]].posts) {
+        for (post p : index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts) {
             // Utf8 encoding size of loc offset (no delimiters)
             uint64_t post_size = SizeOfUtf8(p.loc - last_loc);
 
@@ -147,13 +149,13 @@ void IndexChunk::persist() {
 
     // Loop through all words
     for (uint32_t i = 0; i < N; i++) {
-        uint64_t size = index[alphabetized_entries[i]].posts.size(); // Needs to be an lvalue for fwrite
+        uint64_t size = index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts.size(); // Needs to be an lvalue for fwrite
 
         // Write the number of occurrences and documents
         // <64b NUM POSTS> <64b NUM DOCS>\n
         fwrite(&size, sizeof(uint64_t), 1, fd);
         fwrite(" ", sizeof(char), 1, fd);
-        fwrite(&index[alphabetized_entries[i]].n_docs, sizeof(uint64_t), 1, fd);
+        fwrite(&index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].n_docs, sizeof(uint64_t), 1, fd);
         fwrite("\n", sizeof(char), 1, fd);
 
         // Write the internal index
@@ -177,9 +179,9 @@ void IndexChunk::persist() {
         Utf8 loc_buff[MAX_UTF8_LEN];
         doc_buff[0] = 0; // Set first bit of doc_buff to be the flag
 
-        // For each word occurrence: <varlen DOC ID/OFFSET><varlen LOC ID/OFFSET>
+        // For each word occurrence: (IF NEW DOC <0b0||varlen DOC OFFSET>)<varlen LOC ID/OFFSET>
         // Because we're doing UTF 8, no delimiters
-        for (post p : index[alphabetized_entries[i]].posts) {
+        for (post p : index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())].posts) {
             // Only write the doc offset if it's a new document, in which case write the offset after the flag
             if (p.doc > last_doc) {
                 Utf8* doc_end = WriteUtf8(doc_buff + 1, p.doc - last_doc, doc_buff + MAX_UTF8_LEN + 1);
@@ -203,6 +205,10 @@ void IndexChunk::persist() {
     }
     
     fclose(fd);
+
+    file_lock.lock();
+    chunk++;
+    file_lock.unlock();
 }
 
 vector<string> IndexChunk::sort_entries() {
@@ -210,7 +216,7 @@ vector<string> IndexChunk::sort_entries() {
     res.reserve(index.size());
 
     for (auto it = index.begin(); it != index.end(); ++it) {
-        res.push_back(it->key);
+        res.push_back(string((*it).key.data(), (*it).key.size()));
     }
 
     radix_sort(res);
@@ -219,39 +225,59 @@ vector<string> IndexChunk::sort_entries() {
 
 bool IndexChunk::add_page(const string &path) {
     FILE* fd = fopen(path.data(), "r");
+    if (fd == nullptr) {
+        perror("Error opening file.\n");
+        return false;
+    }
 
-    // TODO: This exact formatting has to be decided on and changed
-    // The HTML parser from HW outputs the words in an HTML page, but that's silly compared to a text file
-    // Assuming some header for title, body, and anchor sections
-    
     char buff[4096];
+    char url[2048];
+    
+    while (true) {
+        // Set of words already encountered in the document to track number of documents word appears in
+        unordered_map<string, bool> word_set;
 
-    // Check title header
-    fgets(buff, sizeof(buff), fd);
-    if (strcmp(buff, "title")) {
-        perror("Expected title header missing.\n");
+        // Check doc header
+        fgets(buff, sizeof(buff), fd);
+        if (strcmp(buff, "<doc>\n")) {
+            perror("Expected document header missing.\n");
+            return false;
+        }
+
+        // Read in the URL (will end with \n\0)
+        fgets(url, sizeof(url), fd);
+
+        // Increment the doc count
+        doc_lock_.lock();
+        uint32_t doc = curr_doc_++;
+        urls.push_back(string(url, strlen(url) - 1)); // -1 bc of \n at the end
+        doc_lock_.unlock();
+
+        // Start a counter for word locations
+        uint32_t loc = 0;
+
+        // Parse title and body words
+        while(fgets(buff, sizeof(buff), fd)) {
+            if (!strcmp(buff, "<\\doc>\n")) {
+                // Doc ended, go back to top of loop
+                continue;
+            } else if (strcmp(buff, "<\\title>\n") && strcmp(buff, "<title>\n")) { // Don't push the title tags
+                // -1 because all words have new line at the end from fgets
+                string_view word_view = string_view(buff, strlen(buff) - 1);
+
+                // TODO: Have to case convert, but should that happen here or in parser?
+                if (!word_set[word_view]) {
+                    word_set[word_view] = true;
+                    index[word_view].n_docs++;
+                }
+
+                index[word_view].posts.push_back({doc, ++loc});
+            }
+        }
+
+        if (feof(fd)) return true;
+        else if (ferror(fd)) return false;
     }
 
-    // TODO: Protect this for parallelism, but have to discuss how we're distributing this
-    uint32_t doc = curr_doc_++;
-
-    // Start a counter for word locations
-    uint32_t loc = 0;
-
-    // TODO: Read all words in title
-    while(fgets(buff, sizeof(buff), fd)) {
-
-        // TODO: When new line is hit, title section is over
-    }
-
-    // Check body header
-    fgets(buff, sizeof(buff), fd);
-    if (strcmp(buff, "body")) {
-        perror("Expected body header missing.\n");
-    }
-
-    // TODO: Parse body words
-    while(fgets(buff, sizeof(buff), fd)) {
-        // Discussin w aiden on how string lib supports this
-    }
+    return true;
 }

@@ -91,4 +91,6 @@ string s = my_view.to_string();
 
 * **Comparisons:** You can safely use `==` to compare any combination of `string`, `string_view`, and standard `"c_strings"`.
 
+* **Pushing to a Data Structure** If you are willing to transfer ownership, push with `move()`. 
+  * If you are not willing to transfer ownership you must copy the string with `string(my_str.data(), my_str.size())`
 ---
