@@ -5,15 +5,11 @@
 #include "../lib/deque.h"
 #include "../lib/rpc_crawler.h"
 #include "lib/consts.h"
+#include "domain_carousel.h"
 #include <cassert>
+#include <atomic>
 #include <mutex>
 #include <chrono>
-
-
-struct BackoffEntry {
-    CrawlTarget target;
-    std::chrono::steady_clock::time_point rejected_at;
-};
 
 
 class BucketManager {
@@ -23,7 +19,8 @@ public:
     deque<BackoffEntry> backoff_queue;
 
 
-    BucketManager(vector<string> bucket_files_in) : bucket_files(static_cast<vector<string>&&>(bucket_files_in)) {
+    BucketManager(vector<string> bucket_files_in, DomainCarousel* dc_in)
+        : bucket_files(static_cast<vector<string>&&>(bucket_files_in)), dc(dc_in) {
         assert(bucket_files.size() == PRIORITY_BUCKETS);
     }
 
@@ -48,14 +45,16 @@ public:
 
     // Destructor
     ~BucketManager() {
-
+        running.store(false, std::memory_order_relaxed);
     }
 
 
-    // todo(hershey): write a detached, long-lived routine to feed the carousel from the buckets (using feed_carousel() as a util function)
+    // Runs as a detached, long-lived routine to feed the carousel from the buckets (using feed_carousel() as a util function)
     // This 1) tries to move crawl targets from priority buckets into the carousel and 2) tries to move crawl targets from the backoff queue into the carousel
     void feed_carousel_worker() {
-        
+        while (running) {
+            
+        }
     }
 
 
@@ -72,4 +71,10 @@ private:
     // bucket_files[priority] = file to serialized queue of urls
     // index 0 is highest priority, index PRIORITY_BUCKETS - 1 is the lowest
     vector<string> bucket_files;
+
+    // Domain carousel that we are managing
+    DomainCarousel* dc;
+
+    // Signal for detached threads to exit (and thus join in the destructor)
+    std::atomic<bool> running{true};
 };

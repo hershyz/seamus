@@ -33,7 +33,7 @@ int main() {
     for (size_t i = 0; i < bucket_files.size(); ++i) {
         logger::info("  bucket[%zu] = %.*s", i, static_cast<int>(bucket_files[i].size()), bucket_files[i].data());
     }
-    BucketManager bm(static_cast<vector<string>&&>(bucket_files));
+    BucketManager bm(static_cast<vector<string>&&>(bucket_files), &dc);
 
     // Crawler listener
     CrawlerListener cl(&bm, &dc);

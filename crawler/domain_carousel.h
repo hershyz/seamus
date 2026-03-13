@@ -3,10 +3,15 @@
 #include "../lib/deque.h"
 #include "../lib/rpc_crawler.h"
 #include "../lib/consts.h"
-#include "bucket_manager.h"
 #include <mutex>
 #include <chrono>
 #include <cstdint>
+
+
+struct BackoffEntry {
+    CrawlTarget target;
+    std::chrono::steady_clock::time_point rejected_at;
+};
 
 
 class DomainCarousel {

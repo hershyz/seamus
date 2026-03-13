@@ -14,8 +14,8 @@ void test_crawler_listener_receives_batch() {
     for (size_t i = 0; i < PRIORITY_BUCKETS; i++) {
         bucket_files.push_back(string("bucket_") );
     }
-    BucketManager bm(static_cast<vector<string>&&>(bucket_files));
     DomainCarousel dc;
+    BucketManager bm(static_cast<vector<string>&&>(bucket_files), &dc);
 
     // Start listener
     CrawlerListener cl(&bm, &dc);
