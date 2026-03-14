@@ -5,6 +5,7 @@
 
 #include <cstring>
 
+#include "../../url_store/url_store.h"
 #include "../../lib/buffer.h"
 #include "../../lib/string.h"
 #include "../../lib/utils.h"
@@ -27,16 +28,17 @@ public:
     buffer buf;
     word_array<MAX_WORD_MEMORY> words;
     word_array<MAX_LINK_MEMORY> links;
-    word_array<MAX_TITLELEN_MEMORY> title_lengths;
     static constexpr size_t MAX_BASE_LEN = 256;
     char base[MAX_BASE_LEN] = {};
     size_t base_len = 0;
 
-    HtmlParser(int in_fd, int words_fd, int links_fd, int titles_fd, const char *url)
+    // TODO: I assume this will be instantiated elsewhere?
+    UrlStore urlStore;
+
+    HtmlParser(int in_fd, int words_fd, int links_fd, const char *url)
         : in_fd_(in_fd)
         , words(words_fd)
         , links(links_fd)
-        , title_lengths(titles_fd)
         , url(url) {
         write_header();
     }
@@ -70,7 +72,6 @@ public:
         words.case_convert();
         words.flush();
         links.flush();
-        title_lengths.flush();
     }
 
     void inline write_header() {
@@ -78,7 +79,7 @@ public:
         words.push_back(url.data(), url.size());
     }
 
-    void inline write_footer() { words.push_back("<\\doc>", 6); }
+    void inline write_footer() { words.push_back("</doc>", 6); }
 
 private:
     // Internal parse that operates on the current buffer contents
@@ -291,9 +292,8 @@ private:
                     if (in_title_) {
                         words.push_back("<title>", 7);
                     } else {
-                        words.push_back("<\\title>", 8);
-                        title_lengths.push_back(url.data(), url.size(), RETURN_DELIM);
-                        title_lengths.push_back(string(num_words).data(), string(num_words).size());
+                        words.push_back("</title>", 8);
+                        urlStore.updateTitleLen(string(url.data(), url.size()), num_words);
                     }
 
                     while (p < end && *p != '>') p++;
