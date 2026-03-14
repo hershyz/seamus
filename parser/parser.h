@@ -5,10 +5,11 @@
 
 #include <cstring>
 
-#include "../../url_store/url_store.h"
-#include "../../lib/buffer.h"
-#include "../../lib/string.h"
-#include "../../lib/utils.h"
+#include "../url_store/url_store.h"
+#include "../lib/buffer.h"
+#include "../lib/rpc_urlstore.h"
+#include "../lib/string.h"
+#include "../lib/utils.h"
 #include "HtmlTags.h"
 #include "word_array.h"
 
@@ -24,10 +25,14 @@ public:
     static constexpr int MAX_WORD_MEMORY = 32 * 1024;
 
     int in_fd_;
+    uint16_t hops;
+    uint16_t domain_hops;
     string url;
+    string curr_link;
     buffer buf;
     word_array<MAX_WORD_MEMORY> words;
     word_array<MAX_LINK_MEMORY> links;
+    unordered_map<string, URLStoreUpdateRequest> links_map;
     static constexpr size_t MAX_BASE_LEN = 256;
     char base[MAX_BASE_LEN] = {};
     size_t base_len = 0;
@@ -35,11 +40,14 @@ public:
     // TODO: I assume this will be instantiated elsewhere?
     UrlStore urlStore;
 
-    HtmlParser(int in_fd, int words_fd, int links_fd, const char *url)
+    HtmlParser(int in_fd, int words_fd, int links_fd, uint16_t hops, uint16_t domain_hops, const char *url)
         : in_fd_(in_fd)
         , words(words_fd)
         , links(links_fd)
-        , url(url) {
+        , hops(hops)
+        , domain_hops(domain_hops)
+        , url(url)
+        , curr_link("") {
         write_header();
     }
 
@@ -72,6 +80,15 @@ public:
         words.case_convert();
         words.flush();
         links.flush();
+
+        // Convert map of URLs to vector
+        BatchURLStoreUpdateRequest link_batch;
+        link_batch.reqs.reserve(links_map.size());
+        for (auto it = links_map.begin(); it != links_map.end(); ++it) {
+            link_batch.reqs.push_back(move((*it).value));
+        }
+
+        // TODO: Send RPCs to workers based on hash
     }
 
     void inline write_header() {
@@ -219,8 +236,11 @@ private:
                 if (p > word_start) {
                     size_t word_len = p - word_start;
                     if (in_a_) {
+                        // TODO: Push back to anchor text vector instead of writing to links
+                        // PROBLEM: How to get this check for numbers to work without word buffer?
                         !comma_in_number(p, end) ? links.push_back(word_start, word_len, SPACE_DELIM) : links.push_back(word_start, word_len, NULL_DELIM);
 
+                        // TODO: Have to modify case conversion for this as well if not writing to links
                         // Convert just the anchor text, not the URL (since URLs case sensitive)
                         links.case_convert(links.size() - (word_len + 1), links.size());
                     }
@@ -259,6 +279,9 @@ private:
                     if ((!is_closing && word_start < tag_start - 1) || word_start < tag_start - 2) {
                         size_t word_len = is_closing ? (tag_start - 2) - word_start : (tag_start - 1) - word_start;
                         if (in_a_) {
+                            links_map[curr_link].anchor_text.push_back(string(word_start, word_len));
+
+                            // TODO: Delete push back when map working & modify case conversion to work on non-word array
                             links.push_back(word_start, word_len, SPACE_DELIM);
                             links.case_convert(links.size() - (word_len + 1), links.size());
                         }
@@ -274,6 +297,9 @@ private:
                         size_t word_len = p - word_start;
 
                         if (in_a_) {
+                            links_map[curr_link].anchor_text.push_back(string(word_start, word_len));
+
+                            // TODO: Delete push back when map working & modify case conversion to work on non-word array
                             links.push_back(word_start, word_len, SPACE_DELIM);
 
                             // Convert just the anchor text, not the URL (since URLs case sensitive)
@@ -347,7 +373,7 @@ private:
                 case DesiredAction::Anchor:
                     if (is_closing) {
                         in_a_ = false;
-                        links.push_back(nullptr, 0);
+                        links.push_back(nullptr, 0); // TODO: Delete this if we stop using word_array for links
                         while (p < end && *p != '>') p++;
                     } else {
                         while (p < end && *p != '>') {
@@ -362,11 +388,16 @@ private:
                                         char full_link[full_size];
                                         memcpy(full_link, url.data(), url.size());
                                         memcpy(full_link + url.size(), a_start, p - a_start);
+
+                                        // TODO: Can get rid of links.push_back if the map works
                                         links.push_back(full_link, full_size, RETURN_DELIM);
+                                        curr_link = string(full_link, full_size);
                                     } else {
                                         links.push_back(a_start, p - a_start, RETURN_DELIM);
+                                        curr_link = string(a_start, p - a_start);
                                     }
                                     in_a_ = true;
+                                    add_curr_link();
                                 }
                             } else
                                 p++;
@@ -407,7 +438,10 @@ private:
                             const char *embed_start = (p += 5);
                             while (p < end && *p != '"') p++;
 
+                            // TODO: Remove push_back if links_map works
                             links.push_back(embed_start, p - embed_start, RETURN_DELIM);
+                            curr_link = string(embed_start, p - embed_start);
+                            add_curr_link();
                         } else
                             p++;
                     }
@@ -434,6 +468,9 @@ private:
                     if (p > word_start) {
                         words.push_back(word_start, p - word_start, NULL_DELIM);
                         if (in_a_) {
+                            links_map[curr_link].anchor_text.push_back(string(word_start, p - word_start));
+
+                            // TODO: Delete push back when map working & modify case conversion to work on non-word array
                             links.push_back(word_start, p - word_start, NULL_DELIM);
                             links.case_convert(links.size() - ((p - word_start) + 1), links.size());
                         }
@@ -443,6 +480,9 @@ private:
                     if (p > word_start) {
                         size_t word_len = p - word_start;
                         if (in_a_) {
+                            links_map[curr_link].anchor_text.push_back(string(word_start, word_len));
+
+                            // TODO: Delete push back when map working & modify case conversion to work on non-word array
                             links.push_back(word_start, word_len, SPACE_DELIM);
                             links.case_convert(links.size() - (word_len + 1), links.size());
                         }
@@ -462,6 +502,9 @@ private:
                 if (p > word_start) {
                     words.push_back(word_start, p - word_start, NULL_DELIM);
                     if (in_a_) {
+                        links_map[curr_link].anchor_text.push_back(string(word_start, p - word_start));
+
+                        // TODO: Delete push back when map working & modify case conversion to work on non-word array
                         links.push_back(word_start, p - word_start, NULL_DELIM);
                         links.case_convert(links.size() - ((p - word_start) + 1), links.size());
                     }
@@ -476,6 +519,9 @@ private:
                 if (p > word_start) {
                     words.push_back(word_start, p - word_start);
                     if (in_a_) {
+                        links_map[curr_link].anchor_text.push_back(string(word_start, p - word_start));
+
+                        // TODO: Delete push back when map working & modify case conversion to work on non-word array
                         links.push_back(word_start, p - word_start, SPACE_DELIM);
                         links.case_convert(links.size() - ((p - word_start) + 1), links.size());
                     }
@@ -503,6 +549,19 @@ private:
                 non_alnum_run_ = 0;
                 p++;
             }
+        }
+    }
+
+    // Inserts the current link into the map, OR updates its encountered count if already inserted
+    // Requires that curr_link be set BEFORE calling the function
+    void add_curr_link() {
+        if (links_map.contains(curr_link)) links_map[curr_link].num_encountered++;
+        else {
+            links_map.insert(curr_link, URLStoreUpdateRequest{});
+            links_map[curr_link].url = string(curr_link.data(), curr_link.size());
+            links_map[curr_link].seed_list_url_hops = hops + 1;
+            links_map[curr_link].seed_list_domain_hops = extract_domain(curr_link) == extract_domain(url) ? domain_hops : domain_hops + 1;
+            links_map[curr_link].num_encountered = 1;
         }
     }
 };
