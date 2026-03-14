@@ -2,15 +2,24 @@
 
 #include "lib/algorithm.h"
 #include "lib/string.h"
+#include "lib/thread_pool.h"
 #include "lib/utf8.h"
 #include "lib/utils.h"
 
 void init_index() {
-    // Find the latest chunk ID
     file_lock.lock();
+
+    // Find the latest chunk ID
     if (chunk == 0) {
         while (file_exists(string::join("index_chunk_", string(WORKER_NUMBER), "_", string(chunk), ".txt"))) chunk++;
     }
+
+    // Fill the file queue
+    uint32_t i = 0;
+    while (file_exists(string::join("parsed_docs_", string(i), ".txt"))) {
+        files.push_back(string::join("parsed_docs_", string(i++), ".txt"));
+    }
+
     file_lock.unlock();
 }
 
@@ -223,7 +232,7 @@ vector<string> IndexChunk::sort_entries() {
     return res;
 }
 
-bool IndexChunk::add_page(const string &path) {
+bool IndexChunk::index_file(const string &path) {
     FILE* fd = fopen(path.data(), "r");
     if (fd == nullptr) {
         perror("Error opening file.\n");
@@ -265,7 +274,6 @@ bool IndexChunk::add_page(const string &path) {
                 // -1 because all words have new line at the end from fgets
                 string_view word_view = string_view(buff, strlen(buff) - 1);
 
-                // TODO: Have to case convert, but should that happen here or in parser?
                 if (!word_set[word_view]) {
                     word_set[word_view] = true;
                     index[word_view].n_docs++;

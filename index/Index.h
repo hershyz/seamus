@@ -27,10 +27,12 @@ private:
 public:
     IndexChunk() : curr_doc_ (1) {}
 
-    bool add_page(const string &path);
+    bool index_file(const string &path);
     void persist();
 };
 
+deque<string> files;
+std::mutex file_lock;
 uint32_t WORKER_NUMBER;
 uint32_t chunk = 0;
 void init_index();

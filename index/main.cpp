@@ -9,8 +9,12 @@ int main(int argc, char argv[]) {
         exit(1);
     }
 
+    // Initialize the index
     WORKER_NUMBER = argv[1];
+    init_index();
 
-    // TODO: Fill links queue, init index
+    // TODO: Spawn n_cores threads to pull from files queue and parse with index_file
+    // To use our thread_pool, might have to rework IndexChunk format a bit
+
     return 0;
 }
