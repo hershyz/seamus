@@ -68,6 +68,7 @@ public:
 
         // Flush any data remaining in buffer
         words.flush();
+        words.case_convert();
         links.flush();
         title_lengths.flush();
     }
@@ -203,6 +204,7 @@ private:
     }
 
     // Core parsing logic, man i'm glad David did most of this
+    // TODO: Case convert
     void parse_chunk(const char *buffer, size_t length) {
         const char *end = buffer + length;
         const char *p = buffer;
@@ -217,6 +219,9 @@ private:
                     size_t word_len = p - word_start;
                     if (in_a_) {
                         !comma_in_number(p, end) ? links.push_back(word_start, word_len, SPACE_DELIM) : links.push_back(word_start, word_len, NULL_DELIM);
+
+                        // Convert just the anchor text, not the URL (since URLs case sensitive)
+                        links.case_convert(links.size() - word_len, links.size());
                     }
                     
                     // If a comma in between two ints, treat the whole number as a single word

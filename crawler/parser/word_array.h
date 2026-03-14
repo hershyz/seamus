@@ -41,6 +41,12 @@ public:
         }
     }
 
+    // Convert the contents of a given segment of the data array to lowercase
+    // Converts the entire array if no args are given
+    void case_convert(int start = 0, int end = size_) {
+        while (start < end) *(data_ + start) = tolower(*(data_ + start++));
+    }
+
     char *data() { return data_; }
 
     const char *data() const { return data_; }
