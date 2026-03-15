@@ -5,13 +5,13 @@
 
 #include <cstring>
 
-#include "../../url_store/url_store.h"
-#include "../../lib/buffer.h"
-#include "../../lib/string.h"
-#include "../../lib/utils.h"
+#include "../url_store/url_store.h"
+#include "../lib/buffer.h"
+#include "../lib/string.h"
+#include "../lib/utils.h"
 #include "HtmlTags.h"
+#include "url_manager.h"
 #include "word_array.h"
-
 
 class HtmlParser {
 public:
@@ -24,6 +24,8 @@ public:
     static constexpr int MAX_WORD_MEMORY = 32 * 1024;
 
     int in_fd_;
+    uint16_t hops_;
+    uint16_t domain_hops_;
     string url;
     buffer buf;
     word_array<MAX_WORD_MEMORY> words;
@@ -34,14 +36,12 @@ public:
 
     // TODO: I assume this will be instantiated elsewhere?
     UrlStore urlStore;
+    UrlManager urlManager;
 
-    HtmlParser(int in_fd, int words_fd, int links_fd, const char *url)
-        : in_fd_(in_fd)
-        , words(words_fd)
+    HtmlParser(int words_fd, int links_fd)
+        : words(words_fd)
         , links(links_fd)
-        , url(url) {
-        write_header();
-    }
+        , url("") {}
 
     bool killed() const { return killed_; }
 
@@ -49,7 +49,17 @@ public:
     // 2. Parse buffer
     // 3. Move anything un-parsed to the front of the buffer
     // General use - call in a loop until processing full page
-    ssize_t read_and_parse() {
+    ssize_t parse_page(int in_fd, uint16_t hops, uint16_t domain_hops, const char* link) {
+        // Set member vars to reflect current page we're parsing
+        in_fd_ = in_fd;
+        hops_ = hops;
+        domain_hops_ = domain_hops;
+        url = string(link);
+
+        // Write headers to links & doc for a new page
+        write_headers();
+
+        // Parse the page contents
         if (killed_) return 0;
         ssize_t status = buf.read(in_fd_);
         if (status <= 0) return status;
@@ -59,27 +69,41 @@ public:
         return status;
     }
 
-    // Call after read_and_parse() returns 0. Parses remaining bytes and flushes words.
+    // Call after parse_page() returns 0. Parses remaining bytes and flushes words.
     void finish() {
         if (buf.size() > 0) {
             parse_buf();
             buf.clear();
         }
         // Mark that this doc is done
-        write_footer();
+        write_footers();
 
         // Flush any data remaining in buffer
         words.case_convert();
         words.flush();
         links.flush();
+
+        // Pass the links buffer to url manager to handle
+        // TODO: Should this be a separate thread? Can be if we pass by copy
+        urlManager.add_urls(links);
     }
 
-    void inline write_header() {
+    void inline write_headers() {
         words.push_back("<doc>", 5);
         words.push_back(url.data(), url.size());
+        
+        // Add hops info and domain to header in links so it can be easily accessed in URL manager
+        links.push_back("<doc>", 5);
+        links.push_back(string(hops_).data(), string(hops_).size(), SPACE_DELIM);
+        links.push_back(string(domain_hops_).data(), string(domain_hops_).size());
+        string domain = extract_domain(string(url.data(), url.size()));
+        links.push_back(domain.data(), domain.size());
     }
 
-    void inline write_footer() { words.push_back("</doc>", 6); }
+    void inline write_footers() { 
+        words.push_back("</doc>", 6);
+        links.push_back("</doc>", 6);
+    }
 
 private:
     // Internal parse that operates on the current buffer contents
@@ -219,8 +243,11 @@ private:
                 if (p > word_start) {
                     size_t word_len = p - word_start;
                     if (in_a_) {
+                        // TODO: Push back to anchor text vector instead of writing to links
+                        // PROBLEM: How to get this check for numbers to work without word buffer?
                         !comma_in_number(p, end) ? links.push_back(word_start, word_len, SPACE_DELIM) : links.push_back(word_start, word_len, NULL_DELIM);
 
+                        // TODO: Have to modify case conversion for this as well if not writing to links
                         // Convert just the anchor text, not the URL (since URLs case sensitive)
                         links.case_convert(links.size() - (word_len + 1), links.size());
                     }
@@ -347,7 +374,7 @@ private:
                 case DesiredAction::Anchor:
                     if (is_closing) {
                         in_a_ = false;
-                        links.push_back(nullptr, 0);
+                        links.push_back(nullptr, 0); // TODO: Delete this if we stop using word_array for links
                         while (p < end && *p != '>') p++;
                     } else {
                         while (p < end && *p != '>') {
@@ -362,6 +389,7 @@ private:
                                         char full_link[full_size];
                                         memcpy(full_link, url.data(), url.size());
                                         memcpy(full_link + url.size(), a_start, p - a_start);
+
                                         links.push_back(full_link, full_size, RETURN_DELIM);
                                     } else {
                                         links.push_back(a_start, p - a_start, RETURN_DELIM);

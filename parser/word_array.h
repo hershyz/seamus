@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 
-#include "../../lib/io.h"
+#include "../lib/io.h"
 
 
 // Array specifically for storing words with added method push_back providing easy use
