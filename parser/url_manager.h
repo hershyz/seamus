@@ -36,7 +36,6 @@ public:
             uint16_t hops = 0;
             uint16_t domain_hops = 0;
             string domain("");
-            vector<string> anchor_words;
 
             // Expect start of document token
             if (memcmp(p, "<doc>", 5)) {
@@ -68,6 +67,7 @@ public:
                 while(*(++p) != '\n') {}
                 string url(word_start, p - word_start);
                 uint16_t dhop = extract_domain(string(word_start, p - word_start)) != move(domain) ? 1 : 0;
+                vector<string> anchor_words;
 
                 // Parse space-separated anchor texts
                 while (*(++p) != '\n') {
@@ -83,6 +83,7 @@ public:
                     // To me it seems like the ideal thing is that addUrl in URL store should send link to frontier/crawler as needed
                     // Since updateUrl calls addUrl for a new URL, that would solve the issue
                     // Also TODO: I get an error when I try to move(anchor_words) here, but I fear string will break if I don't move
+
                     urlStore.updateUrl(move(url), anchor_words, hops + 1, domain_hops + dhop, 1);
                 } 
                 // Send RPC to destination machine
