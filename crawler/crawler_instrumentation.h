@@ -19,7 +19,8 @@ enum class MetricType : uint8_t {
 
 struct MetricUpdate {
     MetricType type;
-    double value;
+    double num;                 // numerator quantity
+    int den;                    // denominator quantity (for averaging/batching)
 };
 
 
@@ -47,6 +48,12 @@ private:
     vector<deque<MetricUpdate>> queues;
     vector<std::mutex> locks;
 
+    uint64_t documents_crawled = 0;
+    double total_page_length = 0;
+    uint64_t page_length_count = 0;
+    double total_page_priority = 0;
+    uint64_t page_priority_count = 0;
+
     std::atomic<bool> running{true};
     std::mutex shutdown_mutex;
     std::condition_variable shutdown_cv;
@@ -68,10 +75,15 @@ private:
 
                 switch (update.type) {
                     case MetricType::DOCUMENTS_CRAWLED:
+                        documents_crawled += static_cast<uint64_t>(update.num);
                         break;
                     case MetricType::PAGE_LENGTH:
+                        total_page_length += update.num;
+                        page_length_count += update.den;
                         break;
                     case MetricType::PAGE_PRIORITY:
+                        total_page_priority += update.num;
+                        page_priority_count += update.den;
                         break;
                 }
             }

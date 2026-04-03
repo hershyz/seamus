@@ -22,6 +22,10 @@ static std::atomic<uint64_t> pages_crawled{0};
 // Monitors an interval [carousel_left, carousel_right] inclusive on the domain carousel
 // Makes network call to fetch HTML buffer -> parses -> persists to disk
 inline void crawler_worker(DomainCarousel& dc, size_t carousel_left, size_t carousel_right, std::atomic<bool>& running, HtmlParser* parser, RobotsManager* rm, UrlStore* url_store, size_t worker_id, CrawlerInstrumentation* instrumentation) {
+    size_t batch_count = 0;
+    double batch_page_length = 0;
+    double batch_page_priority = 0;
+
     while (running) {
         for (size_t carousel_index = carousel_left; running; carousel_index = (carousel_index < carousel_right) ? carousel_index + 1 : carousel_left) {
             // Try lock on the carousel slot - if contended, skip to next slot
@@ -80,10 +84,19 @@ inline void crawler_worker(DomainCarousel& dc, size_t carousel_left, size_t caro
                 }
                 logger::debug("Worker [%zu-%zu] received %zd bytes from %s", carousel_left, carousel_right, body_len, target->url.data());
                 parser->parse_page(body, static_cast<size_t>(body_len), target->seed_distance, target->domain_dist, target->url.data());
-            } else if (body_len == 0) {
-                logger::debug("Worker [%zu-%zu] received empty body from %s", carousel_left, carousel_right, target->url.data());
-            } else {
-                logger::debug("Worker [%zu-%zu] errored on %s", carousel_left, carousel_right, target->url.data());
+
+                // Instrumentation calls after parsing
+                batch_count++;
+                batch_page_length += static_cast<double>(body_len);
+                batch_page_priority += static_cast<double>(target->seed_distance);
+                if (batch_count >= CRAWLER_INSTRUMENTATION_BATCH_SIZE) {
+                    instrumentation->submit(worker_id, {MetricType::DOCUMENTS_CRAWLED, static_cast<double>(batch_count), 0});
+                    instrumentation->submit(worker_id, {MetricType::PAGE_LENGTH, batch_page_length, static_cast<int>(batch_count)});
+                    instrumentation->submit(worker_id, {MetricType::PAGE_PRIORITY, batch_page_priority, static_cast<int>(batch_count)});
+                    batch_count = 0;
+                    batch_page_length = 0;
+                    batch_page_priority = 0;
+                }
             }
         }
     }
