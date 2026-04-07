@@ -4,6 +4,7 @@
 #include "../lib/utils.h"
 #include "../lib/algorithm.h"
 #include "../lib/Frontier.h"
+#include "../lib/logger.h"
 #include <optional>
 
 
@@ -82,6 +83,7 @@ void UrlStore::client_handler(int fd) {
     std::optional<BatchURLStoreUpdateRequest> req = recv_batch_urlstore_update(fd);
     if (!req) return;
 
+    logger::info("url_store received batch update with %zu requests", req->reqs.size());
     batch_manage_frontier_and_update_url(*req);
 }
 
