@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdlib>
 #include "string.h"
 
 
@@ -10,8 +11,8 @@ constexpr uint8_t LOG_LEVEL = 1;
 constexpr const char* USER_AGENT = "Seamus the Search Engine (web crawler for university course)";
 
 // Global
-constexpr size_t NUM_MACHINES = 1;                                  // todo(hershey): obviously, change when we deploy on more machines
-constexpr const char* MACHINES[NUM_MACHINES] = {"127.0.0.1"};       // todo(hershey): replace localhost ip (127.0.0.1) with global ip of machines once we deploy on multiple machines -- store machine ID as an environment variable
+constexpr size_t NUM_MACHINES = 2;
+constexpr const char* MACHINES[NUM_MACHINES] = {"34.70.223.58", "35.223.225.193"};
 
 inline const char* get_machine_addr(size_t machine_id) {
     // todo(hershey): once we deploy on multiple machines, check an environment variable here (e.g., self_id) and return localhost if machine_id == self_id
@@ -19,9 +20,10 @@ inline const char* get_machine_addr(size_t machine_id) {
     return MACHINES[machine_id];
 }
 
-inline const size_t my_machine_id() {
-    // todo(hershey): check an environment variable here when we are ready to deploy
-    return 0;
+inline size_t my_machine_id() {
+    const char* env = std::getenv("MACHINE_ID");
+    assert(env != nullptr && "MACHINE_ID environment variable is not set");
+    return std::strtoul(env, nullptr, 10);
 }
 
 
