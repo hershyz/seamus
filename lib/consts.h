@@ -12,7 +12,7 @@ constexpr const char* USER_AGENT = "Seamus the Search Engine (web crawler for un
 
 // Global
 constexpr size_t NUM_MACHINES = 2;
-constexpr const char* MACHINES[NUM_MACHINES] = {"34.70.223.58", "35.223.225.193"};
+constexpr const char* MACHINES[NUM_MACHINES] = {"136.119.122.181", "34.70.54.47"};
 
 inline const char* get_machine_addr(size_t machine_id) {
     // todo(hershey): once we deploy on multiple machines, check an environment variable here (e.g., self_id) and return localhost if machine_id == self_id
