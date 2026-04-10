@@ -4,7 +4,12 @@
 #include "lib/vector.h"
 
 #include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <dirent.h>
 #include <random>
+#include <sys/stat.h>
+#include <unistd.h>
 
 
 // ---- Benchmark configuration ----------------------------------------------
@@ -23,22 +28,28 @@ constexpr size_t MAX_WORD_LEN     = 10;
 // Fixed seed so the benchmark is reproducible.
 constexpr uint64_t RNG_SEED = 0xBEEFCAFEULL;
 
+// Where to write the generated parser-format doc files.
+constexpr const char* BENCH_DOC_DIR = "/tmp/index_isr_validation";
+
 } // namespace bench
 
 
-// ---- Word set --------------------------------------------------------------
+// ---- Word pool -------------------------------------------------------------
 //
-// 26 buckets, one per starting letter. All words are pure lowercase [a-z].
-// Each bucket holds WORDS_PER_LETTER distinct-ish words starting with that
-// letter. Document words are sampled uniformly from one of these buckets.
+// A single flat vector of words. Entries are grouped by starting letter:
+// [0 .. WORDS_PER_LETTER)          start with 'a'
+// [WORDS_PER_LETTER .. 2*WPL)      start with 'b'
+// ...
+// All words are pure lowercase [a-z].
 
-struct WordSet {
-    vector<string> by_letter[26];
+struct WordPool {
+    vector<string> words;
 };
 
 
-static WordSet build_word_set(std::mt19937_64& rng) {
-    WordSet set;
+static WordPool build_word_pool(std::mt19937_64& rng) {
+    WordPool pool;
+    pool.words.reserve(26 * bench::WORDS_PER_LETTER);
 
     std::uniform_int_distribution<size_t> len_dist(bench::MIN_WORD_LEN, bench::MAX_WORD_LEN);
     std::uniform_int_distribution<int>    tail_dist('a', 'z');
@@ -46,31 +57,31 @@ static WordSet build_word_set(std::mt19937_64& rng) {
     char buf[bench::MAX_WORD_LEN];
 
     for (int letter = 0; letter < 26; ++letter) {
-        set.by_letter[letter].reserve(bench::WORDS_PER_LETTER);
         for (size_t i = 0; i < bench::WORDS_PER_LETTER; ++i) {
             size_t len = len_dist(rng);
             buf[0] = static_cast<char>('a' + letter);
             for (size_t k = 1; k < len; ++k) {
                 buf[k] = static_cast<char>(tail_dist(rng));
             }
-            set.by_letter[letter].push_back(string(buf, len));
+            pool.words.push_back(string(buf, len));
         }
     }
-    return set;
+    return pool;
 }
 
 
-static void log_word_set(const WordSet& set) {
-    char line[1024];
+static void log_word_pool(const WordPool& pool) {
+    char line[4096];
     for (int letter = 0; letter < 26; ++letter) {
         size_t pos = 0;
         line[pos++] = static_cast<char>('a' + letter);
         line[pos++] = ':';
-        const vector<string>& bucket = set.by_letter[letter];
-        for (size_t i = 0; i < bucket.size() && pos + bucket[i].size() + 2 < sizeof(line); ++i) {
+        size_t start = letter * bench::WORDS_PER_LETTER;
+        size_t end   = start + bench::WORDS_PER_LETTER;
+        for (size_t i = start; i < end && pos + pool.words[i].size() + 2 < sizeof(line); ++i) {
             line[pos++] = ' ';
-            memcpy(line + pos, bucket[i].data(), bucket[i].size());
-            pos += bucket[i].size();
+            memcpy(line + pos, pool.words[i].data(), pool.words[i].size());
+            pos += pool.words[i].size();
         }
         line[pos] = '\0';
         logger::instr("%s", line);
@@ -78,14 +89,173 @@ static void log_word_set(const WordSet& set) {
 }
 
 
+// ---- Corpus ----------------------------------------------------------------
+//
+// A Corpus holds the ground-truth sequence of words for every generated
+// document. Layout:
+//
+//   urls[g]      = URL for global doc g (g = file*DOCS_PER_FILE + doc_in_file)
+//   doc_words[g] = sequence of pool indices (one per word position) for doc g
+//
+// The order inside each doc_words[g] is exactly the order we write to the
+// parser-format file, which is also the order IndexChunk will observe during
+// indexing. Later, we can rebuild the expected doc from the index and diff
+// against this.
+
+struct Corpus {
+    vector<string> urls;
+    vector<vector<uint32_t>> doc_words;
+};
+
+
+static Corpus generate_corpus(const WordPool& pool, std::mt19937_64& rng) {
+    Corpus c;
+    const size_t total_docs = bench::NUM_FILES * bench::DOCS_PER_FILE;
+    c.urls.reserve(total_docs);
+    c.doc_words.reserve(total_docs);
+
+    std::uniform_int_distribution<uint32_t> word_dist(0, pool.words.size() - 1);
+
+    char url_buf[64];
+    for (size_t f = 0; f < bench::NUM_FILES; ++f) {
+        for (size_t d = 0; d < bench::DOCS_PER_FILE; ++d) {
+            int n = snprintf(url_buf, sizeof(url_buf), "http://bench.local/f%zu/d%zu", f, d);
+            c.urls.push_back(string(url_buf, static_cast<size_t>(n)));
+
+            vector<uint32_t> words;
+            words.reserve(bench::WORDS_PER_DOC);
+            for (size_t w = 0; w < bench::WORDS_PER_DOC; ++w) {
+                words.push_back(word_dist(rng));
+            }
+            c.doc_words.push_back(static_cast<vector<uint32_t>&&>(words));
+        }
+    }
+    return c;
+}
+
+
+// ---- File writing ----------------------------------------------------------
+//
+// Parser output format, per IndexChunk::index_file():
+//
+//   <doc>\n
+//   <url>\n
+//   word1\n
+//   word2\n
+//   ...
+//   </doc>\n
+
+static string doc_file_path(size_t file_idx) {
+    return string::join("",
+                        string(bench::BENCH_DOC_DIR),
+                        "/docs_",
+                        string(static_cast<uint32_t>(file_idx)),
+                        ".txt");
+}
+
+
+// Remove all regular files inside `dir` and then the directory itself.
+// Non-recursive: assumes the bench dir only ever contains flat files.
+static void cleanup_dir(const char* dir) {
+    DIR* d = opendir(dir);
+    if (d == nullptr) {
+        if (errno != ENOENT) {
+            logger::error("opendir %s failed (errno=%d: %s)", dir, errno, strerror(errno));
+        }
+        return;
+    }
+
+    char path[1024];
+    struct dirent* entry;
+    while ((entry = readdir(d)) != nullptr) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        snprintf(path, sizeof(path), "%s/%s", dir, entry->d_name);
+        if (unlink(path) != 0) {
+            logger::error("unlink %s failed (errno=%d: %s)", path, errno, strerror(errno));
+        }
+    }
+    closedir(d);
+
+    if (rmdir(dir) != 0 && errno != ENOENT) {
+        logger::error("rmdir %s failed (errno=%d: %s)", dir, errno, strerror(errno));
+    }
+}
+
+
+// mkdir -p equivalent: create each path component in turn, ignoring EEXIST.
+static void mkdir_p(const char* path) {
+    char buf[512];
+    size_t n = strlen(path);
+    if (n >= sizeof(buf)) return;
+    memcpy(buf, path, n + 1);
+    for (size_t i = 1; i < n; ++i) {
+        if (buf[i] == '/') {
+            buf[i] = '\0';
+            if (mkdir(buf, 0755) != 0 && errno != EEXIST) {
+                logger::error("mkdir %s failed (errno=%d: %s)", buf, errno, strerror(errno));
+            }
+            buf[i] = '/';
+        }
+    }
+    if (mkdir(buf, 0755) != 0 && errno != EEXIST) {
+        logger::error("mkdir %s failed (errno=%d: %s)", buf, errno, strerror(errno));
+    }
+}
+
+
+static void write_corpus_files(const WordPool& pool, const Corpus& c) {
+    mkdir_p(bench::BENCH_DOC_DIR);
+
+    for (size_t f = 0; f < bench::NUM_FILES; ++f) {
+        string path = doc_file_path(f);
+        FILE* fd = fopen(path.data(), "w");
+        if (fd == nullptr) {
+            logger::error("failed to open %s for writing (errno=%d: %s)",
+                          path.data(), errno, strerror(errno));
+            return;
+        }
+
+        for (size_t d = 0; d < bench::DOCS_PER_FILE; ++d) {
+            size_t g = f * bench::DOCS_PER_FILE + d;
+
+            fputs("<doc>\n", fd);
+            fwrite(c.urls[g].data(), 1, c.urls[g].size(), fd);
+            fputc('\n', fd);
+
+            const vector<uint32_t>& words = c.doc_words[g];
+            for (size_t w = 0; w < words.size(); ++w) {
+                const string& word = pool.words[words[w]];
+                fwrite(word.data(), 1, word.size(), fd);
+                fputc('\n', fd);
+            }
+
+            fputs("</doc>\n", fd);
+        }
+
+        fclose(fd);
+        logger::instr("wrote %s (%zu docs)", path.data(), bench::DOCS_PER_FILE);
+    }
+}
+
+
 int main(int /*argc*/, char* /*argv*/[]) {
     logger::instr("index-isr-validation: starting");
 
+    cleanup_dir(bench::BENCH_DOC_DIR);
+
     std::mt19937_64 rng(bench::RNG_SEED);
 
-    WordSet word_set = build_word_set(rng);
-    logger::instr("Built word set: 26 letters x %zu words", bench::WORDS_PER_LETTER);
-    log_word_set(word_set);
+    WordPool pool = build_word_pool(rng);
+    logger::instr("Built word pool: 26 letters x %zu words", bench::WORDS_PER_LETTER);
+    log_word_pool(pool);
+
+    Corpus corpus = generate_corpus(pool, rng);
+    logger::instr("Generated corpus: %zu files x %zu docs x %zu words",
+                  bench::NUM_FILES, bench::DOCS_PER_FILE, bench::WORDS_PER_DOC);
+
+    write_corpus_files(pool, corpus);
+
+    cleanup_dir(bench::BENCH_DOC_DIR);
 
     return 0;
 }
