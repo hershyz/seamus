@@ -1,8 +1,10 @@
 #include "index/Index.h"
+#include "lib/consts.h"
 #include "lib/logger.h"
 #include "lib/string.h"
 #include "lib/vector.h"
 
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -238,10 +240,77 @@ static void write_corpus_files(const WordPool& pool, const Corpus& c) {
 }
 
 
+// ---- Indexing worker -------------------------------------------------------
+//
+// Mirrors index/main.cpp::worker but:
+//   - runs on a single thread (worker 0)
+//   - iterates the benchmark's doc files directly
+//   - always calls flush() at the end (our NUM_FILES * DOCS_PER_FILE docs never hit the
+//     DOCS_PER_INDEX_CHUNK=500k auto-flush threshold)
+//   - times the in-memory indexing and the persist-to-disk phases separately
+
+struct BenchTimings {
+    double index_ms;
+    double flush_ms;
+};
+
+
+static BenchTimings run_index_worker() {
+    using clock = std::chrono::steady_clock;
+
+    IndexChunk idx(0);
+
+    auto t0 = clock::now();
+    for (size_t f = 0; f < bench::NUM_FILES; ++f) {
+        string path = doc_file_path(f);
+        if (!idx.index_file(path)) {
+            logger::error("index_file failed for %s", path.data());
+        }
+    }
+    auto t1 = clock::now();
+    idx.flush();
+    auto t2 = clock::now();
+
+    BenchTimings out;
+    out.index_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    out.flush_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+    return out;
+}
+
+
+// Remove stale worker-0 chunk files so IndexChunk's constructor starts at
+// chunk 0 and persist() doesn't hit `wx` EEXIST.
+static void cleanup_worker0_chunks() {
+    DIR* d = opendir(INDEX_OUTPUT_DIR);
+    if (d == nullptr) {
+        if (errno != ENOENT) {
+            logger::error("opendir %s failed (errno=%d: %s)", INDEX_OUTPUT_DIR, errno, strerror(errno));
+        }
+        return;
+    }
+
+    const char* prefix = "index_chunk_0_";
+    const size_t prefix_len = strlen(prefix);
+    char path[1024];
+
+    struct dirent* entry;
+    while ((entry = readdir(d)) != nullptr) {
+        if (strncmp(entry->d_name, prefix, prefix_len) != 0) continue;
+        snprintf(path, sizeof(path), "%s/%s", INDEX_OUTPUT_DIR, entry->d_name);
+        if (unlink(path) != 0) {
+            logger::error("unlink %s failed (errno=%d: %s)", path, errno, strerror(errno));
+        }
+    }
+    closedir(d);
+}
+
+
 int main(int /*argc*/, char* /*argv*/[]) {
     logger::instr("index-isr-validation: starting");
 
     cleanup_dir(bench::BENCH_DOC_DIR);
+    mkdir_p(INDEX_OUTPUT_DIR);
+    cleanup_worker0_chunks();
 
     std::mt19937_64 rng(bench::RNG_SEED);
 
@@ -255,7 +324,16 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
     write_corpus_files(pool, corpus);
 
+    BenchTimings t = run_index_worker();
+    const size_t total_docs  = bench::NUM_FILES * bench::DOCS_PER_FILE;
+    const size_t total_words = total_docs * bench::WORDS_PER_DOC;
+    logger::instr("Index (in-mem):  %.3f ms", t.index_ms);
+    logger::instr("Flush (persist): %.3f ms", t.flush_ms);
+    logger::instr("Total:           %.3f ms  (%zu docs, %zu words)",
+                  t.index_ms + t.flush_ms, total_docs, total_words);
+
     cleanup_dir(bench::BENCH_DOC_DIR);
+    cleanup_worker0_chunks();
 
     return 0;
 }
