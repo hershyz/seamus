@@ -5,6 +5,10 @@ cc_binary(
     srcs = ["main.cpp"],
     deps = [
         "//index:index_lib",
+        "//lib:consts",
         "//lib:logger",
+        "//lib:string",
+        "//lib:utf8",
+        "//lib:vector",
     ],
 )

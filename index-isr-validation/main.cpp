@@ -2,6 +2,7 @@
 #include "lib/consts.h"
 #include "lib/logger.h"
 #include "lib/string.h"
+#include "lib/utf8.h"
 #include "lib/vector.h"
 
 #include <chrono>
@@ -32,6 +33,12 @@ constexpr uint64_t RNG_SEED = 0xBEEFCAFEULL;
 
 // Where to write the generated parser-format doc files.
 constexpr const char* BENCH_DOC_DIR = "/tmp/index_isr_validation";
+
+// How much detail to print when dumping the index chunk.
+constexpr size_t DUMP_DICT_WORDS      = 20; // first N dict entries
+constexpr size_t DUMP_POSTING_LISTS   = 3;  // first N posting lists (full detail)
+constexpr size_t DUMP_SKIPS_PER_LIST  = 10; // first N skip entries per posting list
+constexpr size_t DUMP_POSTS_PER_LIST  = 15; // first N posts per posting list
 
 } // namespace bench
 
@@ -305,6 +312,249 @@ static void cleanup_worker0_chunks() {
 }
 
 
+// ---- Index chunk reader ----------------------------------------------------
+//
+// Prints the on-disk layout produced by IndexChunk::persist, section by section
+
+static string index_chunk_path(uint32_t worker, uint32_t chunk) {
+    return string::join("",
+                        string(INDEX_OUTPUT_DIR),
+                        "/index_chunk_",
+                        string(worker),
+                        "_",
+                        string(chunk),
+                        ".txt");
+}
+
+
+// Read one UTF-8 codepoint from a FILE*. Returns 0 on EOF.
+static Unicode read_utf8_from_file(FILE* fd) {
+    Utf8 buf[MAX_UTF8_LEN];
+    if (fread(buf, 1, 1, fd) != 1) return 0;
+    size_t n = IndicatedLength(buf);
+    if (n > 1) {
+        if (fread(buf + 1, 1, n - 1, fd) != n - 1) return 0;
+    }
+    const Utf8* p = buf;
+    return ReadUtf8(&p, buf + n);
+}
+
+
+struct DictEntry {
+    string    word;
+    uint64_t  posting_offset;
+};
+
+
+static void dump_index_chunk(const string& path) {
+    FILE* fd = fopen(path.data(), "rb");
+    if (fd == nullptr) {
+        logger::error("dump_index_chunk: fopen %s failed (errno=%d: %s)",
+                      path.data(), errno, strerror(errno));
+        return;
+    }
+
+    // ---- URL section --------------------------------------------------
+    //
+    // Layout:
+    //   <8B urls_bytes>\n
+    //   <4B id> <1B space> <URL> \n       (repeated; 6 + url_len bytes each)
+    //   \n                                (separator)
+    uint64_t urls_bytes = 0;
+    fread(&urls_bytes, sizeof(uint64_t), 1, fd);
+    fgetc(fd); // '\n'
+
+    logger::instr("=== URL section (urls_bytes=%llu) ===", (unsigned long long)urls_bytes);
+    uint64_t consumed = 0;
+    size_t   num_urls = 0;
+    while (consumed < urls_bytes) {
+        // Cannot use fgets here: an ID byte may be 0x0A which fgets would
+        // (incorrectly) treat as end-of-line. Read the fixed-size fields
+        // explicitly and then scan byte-by-byte until the terminating \n.
+        uint32_t id;
+        if (fread(&id, sizeof(uint32_t), 1, fd) != 1) break;
+        char sp;
+        if (fread(&sp, 1, 1, fd) != 1) break; // ' '
+
+        size_t url_len = 0;
+        char   url_buf[2048];
+        while (url_len < sizeof(url_buf)) {
+            int c = fgetc(fd);
+            if (c == EOF || c == '\n') break;
+            url_buf[url_len++] = static_cast<char>(c);
+        }
+        logger::instr("  id=%u -> %.*s", id, (int)url_len, url_buf);
+        consumed += 4 + 1 + url_len + 1;
+        num_urls++;
+    }
+    fgetc(fd); // separator '\n'
+    logger::instr("  (%zu URLs)", num_urls);
+
+    // ---- Dictionary lookup table --------------------------------------
+    //
+    // Layout (26 fixed entries):
+    //   <1B letter> <8B offset>\n
+    //   \n                       (separator)
+    logger::instr("=== Dictionary ToC (letter -> byte offset into dict) ===");
+    for (int i = 0; i < 26; ++i) {
+        char     letter, sp;
+        uint64_t off;
+        fread(&letter, 1, 1, fd);
+        fread(&sp,     1, 1, fd); // ' '
+        fread(&off,    sizeof(uint64_t), 1, fd);
+        fread(&sp,     1, 1, fd); // '\n'
+        logger::instr("  %c -> %llu", letter, (unsigned long long)off);
+    }
+    fgetc(fd); // separator '\n'
+
+    // ---- Dictionary ---------------------------------------------------
+    //
+    // Layout:
+    //   <varlen word> <8B posting_offset>\n   (repeated, sorted)
+    //   \n                                    (separator)
+    //
+    // The 8-byte offset can legitimately contain the byte 0x0A, so we
+    // can't use fgets here — parse byte-by-byte using the space/newline
+    // structure.
+    vector<DictEntry> dict;
+    while (true) {
+        char c;
+        if (fread(&c, 1, 1, fd) != 1) break;
+        if (c == '\n') break; // separator reached
+
+        char   word_buf[256];
+        size_t wlen = 0;
+        word_buf[wlen++] = c;
+        while (fread(&c, 1, 1, fd) == 1 && c != ' ') {
+            if (wlen < sizeof(word_buf)) word_buf[wlen++] = c;
+        }
+        uint64_t off;
+        fread(&off, sizeof(uint64_t), 1, fd);
+        fgetc(fd); // '\n'
+
+        DictEntry e { string(word_buf, wlen), off };
+        dict.push_back(static_cast<DictEntry&&>(e));
+    }
+
+    logger::instr("=== Dictionary (%zu words, showing first %zu) ===",
+                  dict.size(), bench::DUMP_DICT_WORDS);
+    for (size_t i = 0; i < dict.size() && i < bench::DUMP_DICT_WORDS; ++i) {
+        logger::instr("  %.*s -> %llu",
+                      (int)dict[i].word.size(), dict[i].word.data(),
+                      (unsigned long long)dict[i].posting_offset);
+    }
+    if (dict.size() > bench::DUMP_DICT_WORDS) {
+        logger::instr("  ... (%zu more)", dict.size() - bench::DUMP_DICT_WORDS);
+    }
+
+    // ---- Posting lists ------------------------------------------------
+    //
+    // Layout for each word (in dict order):
+    //   <8B num_posts> <4B n_docs>\n
+    //   <skip list, padded to SKIP_LIST_SIZE bytes>
+    //   <posts>
+    //   \n
+    //
+    // Skip list: each entry is <4B doc_id> <1B space> <8B offset> \n
+    // (SKIP_LIST_ENTRY_SIZE = 14 bytes). persist() writes one entry per
+    // new doc PLUS one per checkpoint crossed (multiples of
+    // INDEX_SKIP_SIZE), then zero-pads the region up to SKIP_LIST_SIZE so
+    // the dict offsets computed in the first pass stay consistent with
+    // the on-disk layout. Valid entries are parsed until we hit a zero
+    // doc_id (doc IDs are 1-indexed, so 0 unambiguously marks padding).
+    //
+    // Posts: each post is either
+    //   <0x00 flag><utf8 doc_delta><utf8 loc_delta>   (new doc)
+    //   <utf8 loc_delta>                              (same doc)
+    // A UTF-8 encoding of a positive loc_delta never begins with 0x00,
+    // so the flag byte is unambiguous.
+    const size_t SKIP_LIST_ENTRY_SIZE = 4 + 1 + 8 + 1;
+    const size_t SKIP_LIST_SIZE =
+        (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
+
+    logger::instr("=== Posting lists (showing first %zu) ===", bench::DUMP_POSTING_LISTS);
+    for (size_t i = 0; i < dict.size(); ++i) {
+        uint64_t num_posts = 0;
+        uint32_t n_docs    = 0;
+        char     sp;
+        fread(&num_posts, sizeof(uint64_t), 1, fd);
+        fread(&sp,        1, 1, fd); // ' '
+        fread(&n_docs,    sizeof(uint32_t), 1, fd);
+        fread(&sp,        1, 1, fd); // '\n'
+
+        bool verbose = (i < bench::DUMP_POSTING_LISTS);
+        if (verbose) {
+            logger::instr("  [%.*s] num_posts=%llu n_docs=%u",
+                          (int)dict[i].word.size(), dict[i].word.data(),
+                          (unsigned long long)num_posts, n_docs);
+            logger::instr("    skip list (SKIP_LIST_SIZE=%zu bytes, showing first %zu valid entries):",
+                          SKIP_LIST_SIZE, bench::DUMP_SKIPS_PER_LIST);
+        }
+
+        // Pull the entire skip list region into memory so we can parse
+        // valid entries and then discard the zero padding in one pass.
+        static Utf8 skip_buf[(DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * 14];
+        if (fread(skip_buf, 1, SKIP_LIST_SIZE, fd) != SKIP_LIST_SIZE) {
+            logger::error("skip list EOF for word %.*s",
+                          (int)dict[i].word.size(), dict[i].word.data());
+            break;
+        }
+        size_t cursor = 0;
+        size_t valid_entries = 0;
+        while (cursor + SKIP_LIST_ENTRY_SIZE <= SKIP_LIST_SIZE) {
+            uint32_t doc_id;
+            memcpy(&doc_id, skip_buf + cursor, sizeof(uint32_t));
+            if (doc_id == 0) break; // padding
+            uint64_t off;
+            memcpy(&off, skip_buf + cursor + 5, sizeof(uint64_t));
+            if (verbose && valid_entries < bench::DUMP_SKIPS_PER_LIST) {
+                logger::instr("      doc=%u -> offset=%llu",
+                              doc_id, (unsigned long long)off);
+            }
+            cursor += SKIP_LIST_ENTRY_SIZE;
+            valid_entries++;
+        }
+        if (verbose) {
+            logger::instr("    (%zu valid skip entries, rest is zero padding)",
+                          valid_entries);
+        }
+
+        if (verbose) {
+            logger::instr("    posts (showing first %zu):", bench::DUMP_POSTS_PER_LIST);
+        }
+        uint32_t last_doc = 0;
+        uint32_t last_loc = 0;
+        for (uint64_t p = 0; p < num_posts; ++p) {
+            Utf8 first;
+            if (fread(&first, 1, 1, fd) != 1) { logger::error("posts EOF"); break; }
+
+            uint32_t doc;
+            if (first == 0x00) {
+                Unicode doc_delta = read_utf8_from_file(fd);
+                doc = last_doc + static_cast<uint32_t>(doc_delta);
+                last_doc = doc;
+                last_loc = 0;
+            } else {
+                ungetc(first, fd);
+                doc = last_doc;
+            }
+
+            Unicode loc_delta = read_utf8_from_file(fd);
+            uint32_t loc = last_loc + static_cast<uint32_t>(loc_delta);
+            last_loc = loc;
+
+            if (verbose && p < bench::DUMP_POSTS_PER_LIST) {
+                logger::instr("      doc=%u loc=%u", doc, loc);
+            }
+        }
+
+        fgetc(fd); // trailing '\n' for this posting list
+    }
+
+    fclose(fd);
+}
+
+
 int main(int /*argc*/, char* /*argv*/[]) {
     logger::instr("index-isr-validation: starting");
 
@@ -331,6 +581,8 @@ int main(int /*argc*/, char* /*argv*/[]) {
     logger::instr("Flush (persist): %.3f ms", t.flush_ms);
     logger::instr("Total:           %.3f ms  (%zu docs, %zu words)",
                   t.index_ms + t.flush_ms, total_docs, total_words);
+
+    dump_index_chunk(index_chunk_path(0, 0));
 
     cleanup_dir(bench::BENCH_DOC_DIR);
     cleanup_worker0_chunks();
