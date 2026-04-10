@@ -555,6 +555,186 @@ static void dump_index_chunk(const string& path) {
 }
 
 
+// ---- Rebuild + verify -----------------------------------------------------
+//
+// Walk the on-disk index and reconstruct, for every (doc, loc), the word that
+// was written at that position. Then diff the reconstruction against the
+// in-memory Corpus that generated the parser files.
+
+static uint32_t find_pool_index(const WordPool& pool, const char* word, size_t len) {
+    for (size_t i = 0; i < pool.words.size(); ++i) {
+        if (pool.words[i].size() == len &&
+            memcmp(pool.words[i].data(), word, len) == 0) {
+            return static_cast<uint32_t>(i);
+        }
+    }
+    return UINT32_MAX;
+}
+
+
+static vector<vector<uint32_t>> rebuild_docs_from_index(
+        const string& path, const WordPool& pool,
+        size_t total_docs, size_t words_per_doc) {
+
+    vector<vector<uint32_t>> rebuilt;
+    rebuilt.reserve(total_docs);
+    for (size_t d = 0; d < total_docs; ++d) {
+        vector<uint32_t> row;
+        row.reserve(words_per_doc);
+        for (size_t l = 0; l < words_per_doc; ++l) row.push_back(UINT32_MAX);
+        rebuilt.push_back(static_cast<vector<uint32_t>&&>(row));
+    }
+
+    FILE* fd = fopen(path.data(), "rb");
+    if (fd == nullptr) {
+        logger::error("rebuild: fopen %s failed (errno=%d: %s)",
+                      path.data(), errno, strerror(errno));
+        return rebuilt;
+    }
+
+    // Skip the URL section: <8B urls_bytes>\n then urls_bytes of data then \n
+    uint64_t urls_bytes = 0;
+    fread(&urls_bytes, sizeof(uint64_t), 1, fd);
+    fgetc(fd); // '\n'
+    fseek(fd, static_cast<long>(urls_bytes), SEEK_CUR);
+    fgetc(fd); // separator '\n'
+
+    // Skip the dict ToC: 26 fixed 11-byte entries, then \n separator.
+    fseek(fd, 26 * 11, SEEK_CUR);
+    fgetc(fd); // separator '\n'
+
+    // Parse the dictionary to get the word list in posting-list order.
+    vector<DictEntry> dict;
+    while (true) {
+        char c;
+        if (fread(&c, 1, 1, fd) != 1) break;
+        if (c == '\n') break;
+
+        char   word_buf[256];
+        size_t wlen = 0;
+        word_buf[wlen++] = c;
+        while (fread(&c, 1, 1, fd) == 1 && c != ' ') {
+            if (wlen < sizeof(word_buf)) word_buf[wlen++] = c;
+        }
+        uint64_t off;
+        fread(&off, sizeof(uint64_t), 1, fd);
+        fgetc(fd); // '\n'
+
+        DictEntry e { string(word_buf, wlen), off };
+        dict.push_back(static_cast<DictEntry&&>(e));
+    }
+
+    const size_t SKIP_LIST_ENTRY_SIZE = 4 + 1 + 8 + 1;
+    const size_t SKIP_LIST_SIZE =
+        (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
+
+    // Walk every posting list and populate rebuilt[doc-1][loc-1].
+    for (size_t i = 0; i < dict.size(); ++i) {
+        uint64_t num_posts = 0;
+        uint32_t n_docs    = 0;
+        char     sp;
+        fread(&num_posts, sizeof(uint64_t), 1, fd);
+        fread(&sp,        1, 1, fd);
+        fread(&n_docs,    sizeof(uint32_t), 1, fd);
+        fread(&sp,        1, 1, fd);
+
+        fseek(fd, static_cast<long>(SKIP_LIST_SIZE), SEEK_CUR);
+
+        uint32_t pool_idx = find_pool_index(pool,
+                                            dict[i].word.data(),
+                                            dict[i].word.size());
+        if (pool_idx == UINT32_MAX) {
+            logger::error("rebuild: dict word '%.*s' not found in pool",
+                          (int)dict[i].word.size(), dict[i].word.data());
+        }
+
+        uint32_t last_doc = 0;
+        uint32_t last_loc = 0;
+        for (uint64_t p = 0; p < num_posts; ++p) {
+            Utf8 first;
+            if (fread(&first, 1, 1, fd) != 1) { logger::error("rebuild: posts EOF"); break; }
+
+            uint32_t doc;
+            if (first == 0x00) {
+                Unicode doc_delta = read_utf8_from_file(fd);
+                doc = last_doc + static_cast<uint32_t>(doc_delta);
+                last_doc = doc;
+                last_loc = 0;
+            } else {
+                ungetc(first, fd);
+                doc = last_doc;
+            }
+
+            Unicode loc_delta = read_utf8_from_file(fd);
+            uint32_t loc = last_loc + static_cast<uint32_t>(loc_delta);
+            last_loc = loc;
+
+            size_t d_idx = static_cast<size_t>(doc) - 1;
+            size_t l_idx = static_cast<size_t>(loc) - 1;
+            if (d_idx < rebuilt.size() && l_idx < rebuilt[d_idx].size()) {
+                rebuilt[d_idx][l_idx] = pool_idx;
+            }
+        }
+
+        fgetc(fd); // trailing '\n'
+    }
+
+    fclose(fd);
+    return rebuilt;
+}
+
+
+static void verify_rebuild(const Corpus& corpus, const WordPool& pool,
+                           const vector<vector<uint32_t>>& rebuilt) {
+    const size_t MAX_REPORT = 10;
+    size_t mismatches = 0;
+    size_t unset      = 0;
+    size_t total      = 0;
+
+    for (size_t d = 0; d < corpus.doc_words.size(); ++d) {
+        const vector<uint32_t>& expected = corpus.doc_words[d];
+        const vector<uint32_t>& actual   = rebuilt[d];
+        for (size_t l = 0; l < expected.size(); ++l) {
+            total++;
+            uint32_t got = actual[l];
+            uint32_t want = expected[l];
+            if (got == UINT32_MAX) {
+                if (unset < MAX_REPORT) {
+                    const string& w = pool.words[want];
+                    logger::error("  doc=%zu loc=%zu missing (expected '%.*s')",
+                                  d, l, (int)w.size(), w.data());
+                }
+                unset++;
+            } else if (got != want) {
+                // Pool indices may differ while the underlying word string
+                // is identical (the random word pool isn't de-duplicated and
+                // the rebuild path resolves each word to the first matching
+                // pool entry). Only count true string-level mismatches.
+                const string& gw = pool.words[got];
+                const string& ww = pool.words[want];
+                if (gw.size() != ww.size() ||
+                    memcmp(gw.data(), ww.data(), gw.size()) != 0) {
+                    if (mismatches < MAX_REPORT) {
+                        logger::error("  doc=%zu loc=%zu: got '%.*s', expected '%.*s'",
+                                      d, l,
+                                      (int)gw.size(), gw.data(),
+                                      (int)ww.size(), ww.data());
+                    }
+                    mismatches++;
+                }
+            }
+        }
+    }
+
+    if (mismatches == 0 && unset == 0) {
+        logger::instr("Rebuild verification PASSED (%zu positions checked)", total);
+    } else {
+        logger::error("Rebuild verification FAILED: %zu mismatches, %zu unset (of %zu)",
+                      mismatches, unset, total);
+    }
+}
+
+
 int main(int /*argc*/, char* /*argv*/[]) {
     logger::instr("index-isr-validation: starting");
 
@@ -582,7 +762,13 @@ int main(int /*argc*/, char* /*argv*/[]) {
     logger::instr("Total:           %.3f ms  (%zu docs, %zu words)",
                   t.index_ms + t.flush_ms, total_docs, total_words);
 
-    dump_index_chunk(index_chunk_path(0, 0));
+    string chunk_path = index_chunk_path(0, 0);
+    dump_index_chunk(chunk_path);
+
+    logger::instr("=== Rebuilding documents from index ===");
+    vector<vector<uint32_t>> rebuilt = rebuild_docs_from_index(
+        chunk_path, pool, total_docs, bench::WORDS_PER_DOC);
+    verify_rebuild(corpus, pool, rebuilt);
 
     cleanup_dir(bench::BENCH_DOC_DIR);
     cleanup_worker0_chunks();
