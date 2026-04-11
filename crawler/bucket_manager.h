@@ -77,7 +77,7 @@ public:
             // Move crawl targets from priority buckets into the carousel
             int16_t domain_carousel_res = dc->feed_carousel_from_highest_priority_bucket(backoff_lock, backoff_queue);
             if (domain_carousel_res == -1) {
-                logger::warn("feed_carousel_worker found no CrawlTargets in all priority buckets");
+                // logger::warn("feed_carousel_worker found no CrawlTargets in all priority buckets");
             }
 
             // Move crawl targets from the backoff queue into the carousel, breaks once we encounter an item that has not been on the backoff queue for long enough (FIFO order)
