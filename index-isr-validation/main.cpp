@@ -450,14 +450,18 @@ static void dump_index_chunk(const string& path) {
     // ---- Posting lists ------------------------------------------------
     //
     // Layout for each word (in dict order):
-    //   <8B num_posts> ' ' <4B n_docs> ' ' <4B skip_list_size> '\n'
-    //   <skip list entries (exact, no padding)>
+    //   <8B num_posts> <4B n_docs>\n
+    //   <skip list, padded to SKIP_LIST_SIZE bytes>
     //   <posts>
     //   \n
     //
     // Skip list: each entry is <4B doc_id> <1B space> <8B offset> \n
-    // (SKIP_LIST_ENTRY_SIZE = 14 bytes). One entry per checkpoint
-    // crossed (multiples of INDEX_SKIP_SIZE).
+    // (SKIP_LIST_ENTRY_SIZE = 14 bytes). persist() writes one entry per
+    // new doc PLUS one per checkpoint crossed (multiples of
+    // INDEX_SKIP_SIZE), then zero-pads the region up to SKIP_LIST_SIZE so
+    // the dict offsets computed in the first pass stay consistent with
+    // the on-disk layout. Valid entries are parsed until we hit a zero
+    // doc_id (doc IDs are 1-indexed, so 0 unambiguously marks padding).
     //
     // Posts: each post is either
     //   <0x00 flag><utf8 doc_delta><utf8 loc_delta>   (new doc)
@@ -465,41 +469,44 @@ static void dump_index_chunk(const string& path) {
     // A UTF-8 encoding of a positive loc_delta never begins with 0x00,
     // so the flag byte is unambiguous.
     const size_t SKIP_LIST_ENTRY_SIZE = 4 + 1 + 8 + 1;
+    const size_t SKIP_LIST_SIZE =
+        (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
 
     logger::instr("=== Posting lists (showing first %zu) ===", bench::DUMP_POSTING_LISTS);
     for (size_t i = 0; i < dict.size(); ++i) {
         uint64_t num_posts = 0;
         uint32_t n_docs    = 0;
-        uint32_t word_skip_size = 0;
         char     sp;
         fread(&num_posts, sizeof(uint64_t), 1, fd);
         fread(&sp,        1, 1, fd); // ' '
         fread(&n_docs,    sizeof(uint32_t), 1, fd);
-        fread(&sp,        1, 1, fd); // ' '
-        fread(&word_skip_size, sizeof(uint32_t), 1, fd);
         fread(&sp,        1, 1, fd); // '\n'
 
         bool verbose = (i < bench::DUMP_POSTING_LISTS);
         if (verbose) {
-            logger::instr("  [%.*s] num_posts=%llu n_docs=%u skip_size=%u",
+            logger::instr("  [%.*s] num_posts=%llu n_docs=%u",
                           (int)dict[i].word.size(), dict[i].word.data(),
-                          (unsigned long long)num_posts, n_docs, word_skip_size);
+                          (unsigned long long)num_posts, n_docs);
+            logger::instr("    skip list (SKIP_LIST_SIZE=%zu bytes, showing first %zu valid entries):",
+                          SKIP_LIST_SIZE, bench::DUMP_SKIPS_PER_LIST);
         }
 
-        // Read the exact skip list
-        vector<Utf8> skip_buf(word_skip_size);
-        if (word_skip_size > 0 && fread(skip_buf.data(), 1, word_skip_size, fd) != word_skip_size) {
+        // Pull the entire skip list region into memory so we can parse
+        // valid entries and then discard the zero padding in one pass.
+        static Utf8 skip_buf[(DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * 14];
+        if (fread(skip_buf, 1, SKIP_LIST_SIZE, fd) != SKIP_LIST_SIZE) {
             logger::error("skip list EOF for word %.*s",
                           (int)dict[i].word.size(), dict[i].word.data());
             break;
         }
         size_t cursor = 0;
         size_t valid_entries = 0;
-        while (cursor + SKIP_LIST_ENTRY_SIZE <= word_skip_size) {
+        while (cursor + SKIP_LIST_ENTRY_SIZE <= SKIP_LIST_SIZE) {
             uint32_t doc_id;
-            memcpy(&doc_id, skip_buf.data() + cursor, sizeof(uint32_t));
+            memcpy(&doc_id, skip_buf + cursor, sizeof(uint32_t));
+            if (doc_id == 0) break; // padding
             uint64_t off;
-            memcpy(&off, skip_buf.data() + cursor + 5, sizeof(uint64_t));
+            memcpy(&off, skip_buf + cursor + 5, sizeof(uint64_t));
             if (verbose && valid_entries < bench::DUMP_SKIPS_PER_LIST) {
                 logger::instr("      doc=%u -> offset=%llu",
                               doc_id, (unsigned long long)off);
@@ -508,7 +515,8 @@ static void dump_index_chunk(const string& path) {
             valid_entries++;
         }
         if (verbose) {
-            logger::instr("    (%zu skip entries)", valid_entries);
+            logger::instr("    (%zu valid skip entries, rest is zero padding)",
+                          valid_entries);
         }
 
         if (verbose) {
@@ -617,21 +625,20 @@ static vector<vector<uint32_t>> rebuild_docs_from_index(
     }
 
     const size_t SKIP_LIST_ENTRY_SIZE = 4 + 1 + 8 + 1;
+    const size_t SKIP_LIST_SIZE =
+        (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
 
     // Walk every posting list and populate rebuilt[doc-1][loc-1].
     for (size_t i = 0; i < dict.size(); ++i) {
         uint64_t num_posts = 0;
         uint32_t n_docs    = 0;
-        uint32_t word_skip_size = 0;
         char     sp;
         fread(&num_posts, sizeof(uint64_t), 1, fd);
         fread(&sp,        1, 1, fd);
         fread(&n_docs,    sizeof(uint32_t), 1, fd);
         fread(&sp,        1, 1, fd);
-        fread(&word_skip_size, sizeof(uint32_t), 1, fd);
-        fread(&sp,        1, 1, fd);
 
-        fseek(fd, static_cast<long>(word_skip_size), SEEK_CUR);
+        fseek(fd, static_cast<long>(SKIP_LIST_SIZE), SEEK_CUR);
 
         uint32_t pool_idx = find_pool_index(pool,
                                             dict[i].word.data(),
