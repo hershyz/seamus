@@ -84,13 +84,17 @@ IndexStreamReader::IndexStreamReader(string word, LoadedIndex* index) : word(mov
     // Jump to the word's posting list using that offset (which is from )
     curr_loc_ = postings_start_= index->posting_list_ + offset;
 
-    // TODO: Check these casts...
-    n_posts = static_cast<uint64_t>(*curr_loc_);
-    curr_loc_ += sizeof(uint64_t) + 1; // skip over the number and the space
-    n_docs = static_cast<uint64_t>(*curr_loc_);
-    curr_loc_ += sizeof(uint64_t) + 1; // skip over the number and the newline
-    
-    // Starting of posting list, num_docs, num_posts all set
+    // Read header: <8B num_posts> ' ' <4B n_docs> ' ' <4B skip_list_size> '\n'
+    memcpy(&n_posts, curr_loc_, sizeof(uint64_t));
+    curr_loc_ += sizeof(uint64_t) + 1;
+    memcpy(&n_docs, curr_loc_, sizeof(uint32_t));
+    curr_loc_ += sizeof(uint32_t) + 1;
+    uint32_t skip_list_size;
+    memcpy(&skip_list_size, curr_loc_, sizeof(uint32_t));
+    curr_loc_ += sizeof(uint32_t) + 1;
+
+    // Skip over the skip list to reach the posts
+    curr_loc_ += skip_list_size;
 }
 
 const inline post IndexStreamReader::loc() {
