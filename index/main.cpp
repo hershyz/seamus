@@ -30,7 +30,10 @@ void worker(uint32_t worker_number) {
     size_t processed = 0;
     logger::error("Worker %u: starting with %zu files", worker_number, initial_files);
     while (not files.empty()) {
-        bool index_written = idx.index_file(files.front()); // TODO do something if false?
+        const string& f = files.front();
+        logger::error("Worker %u: file %zu/%zu START: %.*s", worker_number, processed, initial_files, (int)f.size(), f.data());
+        bool index_written = idx.index_file(f);
+        logger::error("Worker %u: file %zu/%zu DONE  (ok=%d): %.*s", worker_number, processed, initial_files, (int)index_written, (int)f.size(), f.data());
         files.pop_front();
         processed++;
     }
@@ -41,13 +44,19 @@ void worker(uint32_t worker_number) {
 
 
 int main(int argc, char* argv[]) {
+    logger::error("main: start, NUM_INDEXER_THREADS=%zu", (size_t)NUM_INDEXER_THREADS);
     vector<std::thread> workers;
     for (size_t i = 0; i < NUM_INDEXER_THREADS; i++) {
         workers.push_back(std::thread(worker, i));
+        logger::error("main: spawned worker %zu, workers.size()=%zu", i, workers.size());
     }
+    logger::error("main: all workers spawned, workers.size()=%zu", workers.size());
 
     for (size_t i = 0; i < workers.size(); ++i) {
+        logger::error("main: about to join worker %zu, joinable=%d", i, (int)workers[i].joinable());
         if (workers[i].joinable()) workers[i].join();
+        logger::error("main: joined worker %zu", i);
     }
+    logger::error("main: returning 0");
     return 0;
 }
