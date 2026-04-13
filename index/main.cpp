@@ -26,12 +26,17 @@ deque<string> get_files(uint32_t worker_number) {
 void worker(uint32_t worker_number) {
     IndexChunk idx(worker_number);
     deque<string> files = get_files(worker_number);
+    size_t initial_files = files.size();
+    size_t processed = 0;
+    logger::error("Worker %u: starting with %zu files", worker_number, initial_files);
     while (not files.empty()) {
         bool index_written = idx.index_file(files.front()); // TODO do something if false?
         files.pop_front();
+        processed++;
     }
+    logger::error("Worker %u: loop done, processed %zu/%zu files, calling final flush", worker_number, processed, initial_files);
     idx.flush();
-    logger::info("Index worker %u completed", worker_number);
+    logger::error("Worker %u: final flush returned", worker_number);
 }
 
 
