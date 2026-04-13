@@ -59,6 +59,8 @@ void IndexChunk::persist() {
     // Each skip entry: <4B doc_id> <1B space> <8B offset> <1B '\n'>
     const uint64_t SKIP_LIST_ENTRY_SIZE = 4 + 1 + 8 + 1;
     const uint64_t SKIP_LIST_SIZE = (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
+    // Toggle: when false, skip-list code is kept but does nothing (no bytes reserved, no bytes written).
+    constexpr bool WRITE_SKIP_LIST = false;
 
     /**
      * FIRST PASS over postings
@@ -116,7 +118,7 @@ void IndexChunk::persist() {
         }
 
         // Extra 1 for newline at end of each word's posting list
-        posting_list_size += SKIP_LIST_SIZE + 1;
+        posting_list_size += (WRITE_SKIP_LIST ? SKIP_LIST_SIZE : 0) + 1;
     }
 
     // Write dictionary lookup table
@@ -165,7 +167,7 @@ void IndexChunk::persist() {
         // Plus one entry per new doc encountered.
         // The region is padded out to SKIP_LIST_SIZE bytes so the first-pass
         // size accounting in posting_list_locations stays correct.
-        {
+        if constexpr (WRITE_SKIP_LIST) {
             uint32_t scan_last_doc = 0;
             uint32_t scan_last_loc = 0;
             uint64_t scan_offset = 0;
