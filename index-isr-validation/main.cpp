@@ -626,8 +626,9 @@ static vector<vector<uint32_t>> rebuild_docs_from_index(
     }
 
     const size_t SKIP_LIST_ENTRY_SIZE = 4 + 1 + 8 + 1;
-    const size_t SKIP_LIST_SIZE =
-        (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
+    // const size_t SKIP_LIST_SIZE =
+    //     (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
+    const size_t SKIP_LIST_SIZE = 0;
 
     // Walk every posting list and populate rebuilt[doc-1][loc-1].
     for (size_t i = 0; i < dict.size(); ++i) {
