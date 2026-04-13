@@ -13,7 +13,7 @@ string IndexChunk::get_index_chunk_path() const {
 }
 
 
-IndexChunk::IndexChunk(uint32_t worker_number) : curr_doc_(1), chunk(0), doc_count(0), WORKER_NUMBER(worker_number){
+IndexChunk::IndexChunk(uint32_t worker_number) : curr_doc_(1), chunk(0), docs_in_chunk_(0), posts_bytes_(0), WORKER_NUMBER(worker_number){
     // Important: Init curr_doc_ to 1 to allow for 00 to be used as new doc flag
     // Find the latest chunk ID for this thread
     while (file_exists(get_index_chunk_path())) chunk++;
@@ -270,7 +270,8 @@ void IndexChunk::persist() {
 void IndexChunk::reset() {
     index = unordered_map<string, postings>();
     urls = vector<string>();
-    doc_count = 0;
+    docs_in_chunk_ = 0;
+    posts_bytes_ = 0;
     curr_doc_ = 1; // Curr_doc must start at 1, 0 reserved for flag
 }
 
@@ -359,6 +360,7 @@ bool IndexChunk::index_file(const string &path) {
                 }
 
                 index[word_view].posts.push_back({doc, ++loc});
+                posts_bytes_ += sizeof(post);
             }
         }
 
@@ -367,13 +369,13 @@ bool IndexChunk::index_file(const string &path) {
             fclose(fd);
             return false;
         }
+
+        if (++docs_in_chunk_ >= DOCS_PER_INDEX_CHUNK || posts_bytes_ >= CHUNK_MEM_BUDGET) {
+            flush();
+        }
     }
 
     fclose(fd);
     logger::info("Worker %u: indexed file: %s", WORKER_NUMBER, path.data());
-
-    if (++doc_count == DOCS_PER_INDEX_CHUNK) {
-        flush();
-    }
     return true;
 }
