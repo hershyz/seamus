@@ -31,20 +31,19 @@ void IndexChunk::persist() {
         return;
     }
 
-    // Each entry is: <4B id> <1B space> <url_len bytes> <1B '\n'>
+    // ---- URL table ----
+    // <64b SIZE>\n
+    // <32b ID> <varlen URL>\n  (repeated)
+    // \n
+
     uint64_t urls_bytes = 0;
     for (size_t i = 0; i < urls.size(); i++) urls_bytes += 4 + 1 + urls[i].size() + 1;
 
-    // Write the size of the ID->URL mapping
-    // <64b SIZE>\n
     fwrite(&urls_bytes, sizeof(urls_bytes), 1, fd);
     fwrite("\n", sizeof(char), 1, fd);
 
-    // Write the ID->URL mapping
-    // <32b ID> <varlen URL>\n
     for (uint32_t i = 0; i < urls.size(); i++) {
         uint32_t id = i + 1; // 1 indexed
-        
         fwrite(&id, sizeof(id), 1, fd);
         fwrite(" ", sizeof(char), 1, fd);
         fwrite(urls[i].data(), sizeof(char), urls[i].size(), fd);
@@ -53,19 +52,12 @@ void IndexChunk::persist() {
 
     fwrite("\n", sizeof(char), 1, fd);
 
+    // ---- Dictionary + posting list layout ----
+
     vector<string> alphabetized_entries = sort_entries();
     const uint32_t N = alphabetized_entries.size();
 
-    // Each skip entry: <4B doc_id> <1B space> <8B offset> <1B '\n'>
-    const uint64_t SKIP_LIST_ENTRY_SIZE = 4 + 1 + 8 + 1;
-    const uint64_t SKIP_LIST_SIZE = (DOCS_PER_INDEX_CHUNK / INDEX_SKIP_SIZE) * SKIP_LIST_ENTRY_SIZE;
-
-    /**
-     * FIRST PASS over postings
-     * Calculate dictionary lookup table values (bytes from start of dict to first word of each letter)
-     * Calculate posting list sizes/locations
-     * Caclulate skip list sizes (part of posting list sizes) and locations
-     *  */
+    // First pass: compute dictionary offsets and posting list locations/sizes
 
     vector<uint64_t> posting_list_locations(N);
     uint64_t posting_list_size = 0;
@@ -76,34 +68,29 @@ void IndexChunk::persist() {
     char curr_char = 'a';
 
     for (uint32_t i = 0; i < N; i++) {
-        // First word starting with this letter -- add its offset to the dict lookup table
         if (alphabetized_entries[i][0] > curr_char) {
             curr_char = alphabetized_entries[i][0];
             dict_offsets[curr_char - 'a'] = curr_offset;
         }
 
-        // One byte per char, 6 bytes for posting list offset, 1 byte each for space and new line
-        curr_offset += alphabetized_entries[i].size() + 6 + 2; 
+        // Dictionary entry: <word> <1B space> <8B offset> <1B newline>
+        curr_offset += alphabetized_entries[i].size() + 1 + sizeof(uint64_t) + 1;
 
-        // Mark where the byte offset where current word's posting list begins
         posting_list_locations[i] = posting_list_size;
-
-        // Header for each posting list: 64 bits each for # posts & # docs, plus 2 separating characters
-        posting_list_size += 6 + 6 + 2;
-
-        // Used to calculate the offset (instead of absolute value)
-        uint32_t last_doc = 0;
-        uint32_t last_loc = 0;
 
         postings& entry = index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())];
 
+        // Header: <8B num_posts> <1B space> <4B n_docs> <1B newline>
+        posting_list_size += sizeof(uint64_t) + 1 + sizeof(uint32_t) + 1;
+
+        // Posts
+        uint32_t last_doc = 0;
+        uint32_t last_loc = 0;
+
         for (post p : entry.posts) {
-            // Utf8 encoding size of loc offset (no delimiters)
             uint64_t post_size = SizeOfUtf8(p.loc - last_loc);
 
-            // Update offsets
             if (p.doc > last_doc) {
-                // Only write a doc offset if it's a new document, in which case add 1 byte for leading flag
                 post_size += 1 + SizeOfUtf8(p.doc - last_doc);
                 last_doc = p.doc;
                 last_loc = 0;
@@ -111,16 +98,17 @@ void IndexChunk::persist() {
                 last_loc = p.loc;
             }
 
-            // Add to sizes
             posting_list_size += post_size;
         }
 
-        // Extra 1 for newline at end of each word's posting list
-        posting_list_size += SKIP_LIST_SIZE + 1;
+        // Trailing newline per word
+        posting_list_size += 1;
     }
 
-    // Write dictionary lookup table
-    // <1B LETTER> <64b OFFSET>\n
+    // ---- Write dictionary TOC ----
+    // <1B letter> <1B space> <8B offset> <1B newline>  (x26)
+    // \n
+
     for (int i = 0; i < 26; i++) {
         char c = char(i + 'a');
         fwrite(&c, sizeof(char), 1, fd);
@@ -131,8 +119,10 @@ void IndexChunk::persist() {
 
     fwrite("\n", sizeof(char), 1, fd);
 
-    // Write the dictionary itself
-    // <varlen WORD> <64b OFFSET>\n
+    // ---- Write dictionary ----
+    // <varlen word> <1B space> <8B offset> <1B newline>  (per word)
+    // \n
+
     for (uint32_t i = 0; i < N; i++) {
         fwrite(alphabetized_entries[i].data(), sizeof(char), alphabetized_entries[i].size(), fd);
         fwrite(" ", sizeof(char), 1, fd);
@@ -142,128 +132,50 @@ void IndexChunk::persist() {
 
     fwrite("\n", sizeof(char), 1, fd);
 
-    /**
-     * SECOND PASS over postings
-     * Write the posting lists themselves
-     */
+    // ---- Write posting lists ----
+    // Per word:
+    //   <8B num_posts> <1B space> <4B n_docs> <1B newline>
+    //   <posts: utf8-encoded deltas>
+    //   <1B newline>
 
-    // Loop through all words
     for (uint32_t i = 0; i < N; i++) {
         postings& entry = index[alphabetized_entries[i].str_view(0, alphabetized_entries[i].size())];
-        uint64_t size = entry.posts.size(); // Needs to be an lvalue for fwrite
-        uint32_t next_checkpoint = INDEX_SKIP_SIZE;
+        uint64_t size = entry.posts.size();
 
-        // Write the number of occurrences and documents
-        // <64b NUM POSTS> <32b NUM DOCS>\n
+        // Header
         fwrite(&size, sizeof(uint64_t), 1, fd);
         fwrite(" ", sizeof(char), 1, fd);
         fwrite(&entry.n_docs, sizeof(uint32_t), 1, fd);
         fwrite("\n", sizeof(char), 1, fd);
 
-        // Compute doc offsets on the fly and write skip list
-        // For every INDEX_SKIP_SIZE document: <32b DOC ID> <64b BYTE OFFSET FROM START OF SKIP LIST>\n
-        // Plus one entry per new doc encountered.
-        // The region is padded out to SKIP_LIST_SIZE bytes so the first-pass
-        // size accounting in posting_list_locations stays correct.
-        {
-            uint32_t scan_last_doc = 0;
-            uint32_t scan_last_loc = 0;
-            uint64_t scan_offset = 0;
-            uint64_t skip_bytes_written = 0;
-
-            for (size_t pi = 0; pi < entry.posts.size(); ++pi) {
-                post p = entry.posts[pi];
-                uint64_t post_size = 0;
-
-                if (p.doc > scan_last_doc) {
-                    post_size += 1 + SizeOfUtf8(p.doc - scan_last_doc);
-                    scan_last_doc = p.doc;
-                    scan_last_loc = 0;
-
-                    while (p.doc > next_checkpoint) {
-                        // Fill the skip_list with the first posting after <CHECKPOINT> # of documents
-                        // If we've passed multiple checkpoints, they'll have the same offset (hence the while loop)
-                        uint64_t total_offset = scan_offset + SKIP_LIST_SIZE;
-                        fwrite(&next_checkpoint, sizeof(uint32_t), 1, fd);
-                        fwrite(" ", sizeof(char), 1, fd);
-                        fwrite(&total_offset, sizeof(uint64_t), 1, fd);
-                        fwrite("\n", sizeof(char), 1, fd);
-
-                        skip_bytes_written += SKIP_LIST_ENTRY_SIZE;
-                        next_checkpoint += INDEX_SKIP_SIZE;
-                    }
-
-                    uint64_t total_offset = scan_offset + SKIP_LIST_SIZE;
-                    fwrite(&p.doc, sizeof(uint32_t), 1, fd);
-                    fwrite(" ", sizeof(char), 1, fd);
-                    fwrite(&total_offset, sizeof(uint64_t), 1, fd);
-                    fwrite("\n", sizeof(char), 1, fd);
-
-                    skip_bytes_written += SKIP_LIST_ENTRY_SIZE;
-                }
-
-                post_size += SizeOfUtf8(p.loc - scan_last_loc);
-                scan_last_loc = p.loc;
-
-                scan_offset += post_size;
-            }
-
-            // Pad skip list region to SKIP_LIST_SIZE. The per-new-doc writes
-            // mean dense inputs can overflow the reservation — flag it loudly
-            // if that ever happens (design issue; not fixed here).
-            if (skip_bytes_written > SKIP_LIST_SIZE) {
-                logger::error("Worker %u: skip list overflow for '%.*s' (%llu > %llu bytes)",
-                              WORKER_NUMBER,
-                              static_cast<int>(alphabetized_entries[i].size()),
-                              alphabetized_entries[i].data(),
-                              static_cast<unsigned long long>(skip_bytes_written),
-                              static_cast<unsigned long long>(SKIP_LIST_SIZE));
-            } else {
-                static const char ZERO_BUF[1024] = {0};
-                uint64_t pad = SKIP_LIST_SIZE - skip_bytes_written;
-                while (pad > 0) {
-                    size_t n = pad < sizeof(ZERO_BUF) ? static_cast<size_t>(pad) : sizeof(ZERO_BUF);
-                    fwrite(ZERO_BUF, sizeof(char), n, fd);
-                    pad -= n;
-                }
-                logger::debug("Wrote %u bytes of padding for %s.", pad, alphabetized_entries[i].data());
-            }
-        }
-
-        // Write posts
+        // Posts
         uint32_t last_doc = 0;
         uint32_t last_loc = 0;
 
         Utf8 doc_buff[MAX_UTF8_LEN + 1];
         Utf8 loc_buff[MAX_UTF8_LEN];
-        doc_buff[0] = 0; // Set first bit of doc_buff to be the flag
+        doc_buff[0] = 0; // flag byte for new doc
 
-        // For each word occurrence: (IF NEW DOC <0b0||varlen DOC OFFSET>)<varlen LOC ID/OFFSET>
-        // Because we're doing UTF 8, no delimiters
         for (post p : entry.posts) {
-            // Only write the doc offset if it's a new document, in which case write the offset after the flag
             if (p.doc > last_doc) {
                 Utf8* doc_end = WriteUtf8(doc_buff + 1, p.doc - last_doc, doc_buff + MAX_UTF8_LEN + 1);
                 fwrite(doc_buff, sizeof(Utf8), doc_end - doc_buff, fd);
                 last_loc = 0;
             }
 
-            // Write the loc offset
             Utf8* loc_end = WriteUtf8(loc_buff, p.loc - last_loc, loc_buff + MAX_UTF8_LEN);
             fwrite(loc_buff, sizeof(Utf8), loc_end - loc_buff, fd);
 
-            // Update offsets
             last_loc = p.loc;
             if (p.doc > last_doc) {
                 last_doc = p.doc;
-            } 
+            }
         }
 
         fwrite("\n", sizeof(char), 1, fd);
     }
-    
-    fclose(fd);
 
+    fclose(fd);
     chunk++;
 }
 
