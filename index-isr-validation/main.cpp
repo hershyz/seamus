@@ -392,11 +392,12 @@ static void dump_index_chunk(const string& path) {
 
     // ---- Dictionary lookup table --------------------------------------
     //
-    // Layout (26 fixed entries):
-    //   <1B letter> <8B offset>\n
+    // Layout (36 fixed entries: 26 letters + 10 digits):
+    //   <1B char> <8B offset>\n
     //   \n                       (separator)
-    logger::instr("=== Dictionary ToC (letter -> byte offset into dict) ===");
-    for (int i = 0; i < 26; ++i) {
+    logger::instr("=== Dictionary ToC (char -> byte offset into dict) ===");
+    constexpr int TOC_ENTRIES = 36;
+    for (int i = 0; i < TOC_ENTRIES; ++i) {
         char     letter, sp;
         uint64_t off;
         fread(&letter, 1, 1, fd);
@@ -599,8 +600,8 @@ static vector<vector<uint32_t>> rebuild_docs_from_index(
     fseek(fd, static_cast<long>(urls_bytes), SEEK_CUR);
     fgetc(fd); // separator '\n'
 
-    // Skip the dict ToC: 26 fixed 11-byte entries, then \n separator.
-    fseek(fd, 26 * 11, SEEK_CUR);
+    // Skip the dict ToC: INDEX_DICTIONARY_TOC_SIZE bytes, then \n separator.
+    fseek(fd, static_cast<long>(INDEX_DICTIONARY_TOC_SIZE), SEEK_CUR);
     fgetc(fd); // separator '\n'
 
     // Parse the dictionary to get the word list in posting-list order.
