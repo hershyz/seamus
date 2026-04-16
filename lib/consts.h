@@ -9,11 +9,11 @@
 
 
 // Logging (0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=INSTR, 5=NONE)
-constexpr uint8_t LOG_LEVEL = 2;
+constexpr uint8_t LOG_LEVEL = 0;
 constexpr const char* USER_AGENT = "Seamus the Search Engine (web crawler for university course)";
 
 // Global
-constexpr size_t NUM_MACHINES = 18;
+constexpr size_t NUM_MACHINES = 1;
 // MACHINE_IDS PER PERSON
 // Hershey - 0,1,2
 // David - 3,4,5
@@ -21,23 +21,25 @@ constexpr size_t NUM_MACHINES = 18;
 // Esben - 9,10,11
 // Aiden - 12,13,14
 // Erik - 15,16,17
-constexpr const char* MACHINES[NUM_MACHINES] = {
-    "136.119.122.181", "34.41.200.76", "34.122.197.142",
-    "34.16.67.187", "136.112.229.222", "136.114.229.124",
-    "35.238.21.122", "34.9.161.79", "34.136.74.60",
-    "34.55.208.73", "34.44.13.147", "34.30.238.129",
-    "34.55.179.213", "34.44.148.113", "136.111.182.222",
-    "34.70.54.47", "136.119.91.226", "35.223.96.82"
-};
+constexpr const char* MACHINES[NUM_MACHINES] = {"34.55.179.213"};
+// constexpr const char* MACHINES[NUM_MACHINES] = {
+//     "136.119.122.181", "34.41.200.76", "34.122.197.142",
+//     "34.16.67.187", "136.112.229.222", "136.114.229.124",
+//     "35.238.21.122", "34.9.161.79", "34.136.74.60",
+//     "34.55.208.73", "34.44.13.147", "34.30.238.129",
+//     "34.55.179.213", "34.44.148.113", "136.111.182.222",
+//     "34.70.54.47", "136.119.91.226", "35.223.96.82"
+// };
 inline const char* get_machine_addr(size_t machine_id) {
     assert(machine_id < NUM_MACHINES);
     return MACHINES[machine_id];
 }
 
 inline size_t my_machine_id() {
-    const char* env = std::getenv("MACHINE_ID");
-    assert(env != nullptr && "MACHINE_ID environment variable is not set");
-    return std::strtoul(env, nullptr, 10);
+    return 0;
+    // const char* env = std::getenv("MACHINE_ID");
+    // assert(env != nullptr && "MACHINE_ID environment variable is not set");
+    // return std::strtoul(env, nullptr, 10);
 }
 
 
@@ -116,7 +118,7 @@ constexpr const char* SEED_LIST[SEED_LIST_SIZE] = {
     "https://www.britannica.com",
     "https://www.merriam-webster.com",
     "https://www.oed.com",
-    "https://www.wikipedia.org",
+    "https://en.wikipedia.org",
     "https://www.history.com",
     "https://www.nationalgeographic.com",
     "https://www.nature.com",
