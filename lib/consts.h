@@ -183,7 +183,7 @@ constexpr const char* SEED_LIST[SEED_LIST_SIZE] = {
 
 // Parser
 static constexpr size_t MAX_PARSED_PAGES = (3*1e8)/18; // 300M/18
-static constexpr const char* PARSER_OUTPUT_DIR = "/var/seamus/parser_output";
+static constexpr const char* PARSER_OUTPUT_DIR = "/var/seamus/parser_output_test";
 static constexpr int MAX_CONSECUTIVE_NON_ALNUM = 100;
 static constexpr char RETURN_DELIM = '\r';
 static constexpr char NULL_DELIM = '\0';
@@ -196,7 +196,7 @@ static constexpr size_t MAX_HTML_SIZE = 100 * 1024; // 100 KB
 
 // URL Store
 static constexpr uint32_t MAX_STORE_URLS = (9*1e8)/18; // 900M/18
-static constexpr const char* URL_STORE_OUTPUT_DIR = "/var/seamus/urlstore_output";
+static constexpr const char* URL_STORE_OUTPUT_DIR = "/var/seamus/urlstore_output_test";
 static const string URL_STORE_OUTPUT_DIR_STR = string(URL_STORE_OUTPUT_DIR);
 constexpr bool URL_FROM_SCRATCH = false; // whether to read from file or start from scratch on url_store bottup
 constexpr uint32_t URL_STORE_NUM_THREADS = 16;
@@ -221,7 +221,7 @@ constexpr size_t HTMLSERVER_THREADS = 8;
 constexpr size_t DOCS_PER_INDEX_CHUNK = 500000;
 constexpr size_t CHUNK_MEM_BUDGET = 1 << 30; 
 constexpr uint32_t INDEX_SKIP_SIZE = 500;
-static constexpr const char* INDEX_OUTPUT_DIR = "/var/seamus/index_output";
+static constexpr const char* INDEX_OUTPUT_DIR = "/var/seamus/index_output_test";
 constexpr size_t NUM_INDEXER_THREADS = 16; // Should be the number of cores     // todo(Aiden): change depending on number of cores we end up renting per machine
 constexpr size_t POSTING_LIST_BUFFER_SIZE = 1e9;
 constexpr size_t INDEX_DICTIONARY_TOC_SIZE = (1 + 8 + 2) * 36; // char, uint64_t, 2 delims — 26 letters + 10 digits
